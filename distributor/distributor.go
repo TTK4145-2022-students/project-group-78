@@ -10,6 +10,7 @@ import (
 )
 
 const PORT = 41875
+var BROADCAST_ADDR = &net.UDPAddr{IP: net.ParseIP("127.255.255.255"), Port: PORT}
 
 type Distributor struct {
 	Conn *net.UDPConn
@@ -27,33 +28,28 @@ func New(id int) *Distributor {
 	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
 	localAddr := &net.UDPAddr{IP: localIp, Port: PORT}
 
-	d := new(Distributor)
-	var err error
-
-	d.Conn, err = net.ListenUDP("udp", localAddr)
+	conn, err := net.ListenUDP("udp", localAddr)
 	if err == nil {
-		log.Debugf("Listening on %v", d.Conn.LocalAddr().String())
+		log.Debugf("Listening on %v", conn.LocalAddr().String())
 	} else {
 		log.Panic(err)
 	}
 
-	d.Id = id
-	return d
+	return &Distributor{conn, id}
 }
 
 func (d *Distributor) SendDatagram(datagram Datagram) {
 	var buf bytes.Buffer
-	encoder := gob.NewEncoder(&buf)
-	encoder.Encode(datagram)
+	err := gob.NewEncoder(&buf).Encode(datagram)
+	if err != nil {
+		log.Panic(err)
+	}
 
-	ip := net.ParseIP("127.255.255.255")
-	addr := &net.UDPAddr{IP: ip, Port: PORT}
-
-	n, err := d.Conn.WriteToUDP(buf.Bytes(), addr)
+	n, err := d.Conn.WriteToUDP(buf.Bytes(), BROADCAST_ADDR)
 	if err != nil {
 		log.Panic(err)
 	} else {
-		log.Debugf("Successfully sent %v bytes to %v", n, addr.String())
+		log.Debugf("Successfully sent %v bytes to %v", n, BROADCAST_ADDR.String())
 	}
 }
 
@@ -70,8 +66,7 @@ func (d *Distributor) ReceiveDatagram() (datagram Datagram) {
 		log.Debugf("Received %v bytes from %v", n, addr.String())
 	}
 
-	decoder := gob.NewDecoder(bytes.NewBuffer(buf[0:n]))
-	err = decoder.Decode(&datagram)
+	err = gob.NewDecoder(bytes.NewBuffer(buf[0:n])).Decode(&datagram)
 	if err != nil {
 		log.Panic(err)
 	}

@@ -1,6 +1,8 @@
 package distributor
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"net"
 
@@ -8,48 +10,70 @@ import (
 )
 
 const PORT = 41875
-const BUF_LENGTH = 2048
 
 type Distributor struct {
-	EventsIn chan string
-	Conn     *net.UDPConn
+	Conn *net.UDPConn
+	Id int
 }
 
-func New(id int) (distributor Distributor) {
-	ip := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
+type Datagram struct {
+	SequenceNum int
+	From        int
+	Ack         bool
+	Message     string
+}
+
+func New(id int) *Distributor {
+	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
+	localAddr := &net.UDPAddr{IP: localIp, Port: PORT}
+
+	d := new(Distributor)
+	var err error
+
+	d.Conn, err = net.ListenUDP("udp", localAddr)
+	if err == nil {
+		log.Debugf("Listening on %v", d.Conn.LocalAddr().String())
+	} else {
+		log.Panic(err)
+	}
+
+	d.Id = id
+	return d
+}
+
+func (d *Distributor) SendDatagram(datagram Datagram) {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(datagram)
+
+	ip := net.ParseIP("127.255.255.255")
 	addr := &net.UDPAddr{IP: ip, Port: PORT}
 
-	conn, err := net.ListenUDP("udp", addr)
-	if err == nil {
-		log.Debugf("Listening on %v", conn.LocalAddr().String())
-	} else {
-		log.Panic(err)
-	}
-
-	go processUDP(conn)
-
-	return
-}
-
-func logConn(conn *net.UDPConn) {
-	buf := make([]byte, BUF_LENGTH)
-	n, addr, err := conn.ReadFrom(buf)
+	n, err := d.Conn.WriteToUDP(buf.Bytes(), addr)
 	if err != nil {
 		log.Panic(err)
-	} else if n == BUF_LENGTH {
-		log.Panic("Read max number of bytes (%v) into buffer. Consider increasing the buffer size", BUF_LENGTH)
 	} else {
-		log.Infof("%v from %v", string(buf), addr.String())
-		//log.Debugf("Received %v bytes from %v", n, addr.String())
+		log.Debugf("Successfully sent %v bytes to %v", n, addr.String())
 	}
 }
 
-func processUDP(conn *net.UDPConn) {
-	for {
-		logConn(conn)
+func (d *Distributor) ReceiveDatagram() (datagram Datagram) {
+	buf_size := 2048
+	buf := make([]byte, buf_size)
+
+	n, addr, err := d.Conn.ReadFrom(buf)
+	if err != nil {
+		log.Panic(err)
+	} else if n == buf_size {
+		log.Panic("Read max number of bytes (%v) into buffer. Consider increasing the buffer size", buf_size)
+	} else {
+		log.Debugf("Received %v bytes from %v", n, addr.String())
 	}
-}
 
-func processEvents() {
-
+	decoder := gob.NewDecoder(bytes.NewBuffer(buf[0:n]))
+	err = decoder.Decode(&datagram)
+	if err != nil {
+		log.Panic(err)
+	}
+	return
 }

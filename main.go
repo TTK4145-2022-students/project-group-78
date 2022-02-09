@@ -1,17 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"strconv"
 
+	"github.com/TTK4145-2022-students/project-group-78/distributor"
 	log "github.com/sirupsen/logrus"
 )
 
 const PORT = 41875
 const BUF_LENGTH = 2048
-var MULTICAST_ADDR = &net.UDPAddr{IP: net.ParseIP("127.255.255.255"), Port: PORT}
 
 type Distributor struct {
 	EventsIn chan string
@@ -19,44 +18,19 @@ type Distributor struct {
 }
 
 func main() {
+	log.SetLevel(log.DebugLevel)
+
 	id, err := strconv.Atoi(os.Args[1])
 	if err != nil {
 		log.Panic(err)
+	} else if id < 1 || id > 255 {
+		log.Panic("Invalid id, must be between 1 and 255")
 	}
 
-	ip := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
-	addr := &net.UDPAddr{IP: ip, Port: PORT}
+	dist := distributor.New(id)
+	datagram := &distributor.Datagram{1, 1, false, "Hello"}
+	dist.SendDatagram(*datagram)
+	datagram2 := dist.ReceiveDatagram()
 
-	conn, err := net.ListenUDP("udp", addr)
-	if err == nil {
-		log.Debugf("Listening on %v", conn.LocalAddr().String())
-	} else {
-		log.Panic(err)
-	}
-
-	_, err = conn.WriteToUDP([]byte(fmt.Sprintf("%v hello", id)), MULTICAST_ADDR)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	processUDP(conn)
-}
-
-func logConn(conn *net.UDPConn) {
-	buf := make([]byte, BUF_LENGTH)
-	n, addr, err := conn.ReadFrom(buf)
-	if err != nil {
-		log.Panic(err)
-	} else if n == BUF_LENGTH {
-		log.Panic("Read max number of bytes (%v) into buffer. Consider increasing the buffer size", BUF_LENGTH)
-	} else {
-		log.Infof("%v from %v", string(buf), addr.String())
-		//log.Debugf("Received %v bytes from %v", n, addr.String())
-	}
-}
-
-func processUDP(conn *net.UDPConn) {
-	for {
-		logConn(conn)
-	}
+	log.Infof("Sent %v - recieved %v", datagram.Message, datagram2.Message)
 }

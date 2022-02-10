@@ -3,40 +3,71 @@ package distributor
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"net"
 
 	log "github.com/sirupsen/logrus"
 )
 
 const PORT = 41875
+
 var BROADCAST_ADDR = &net.UDPAddr{IP: net.ParseIP("127.255.255.255"), Port: PORT}
 
+type Event struct {
+	Ack bool
+}
+
 type Distributor struct {
-	Conn *net.UDPConn
-	Id int
+	EventIn chan Event
+
+	conn              *net.UDPConn
+	id                int
+	eventOuts         []chan Event
+	datagramIn        chan Datagram
+	timedoutDatagrams chan Datagram
 }
 
 type Datagram struct {
-	SequenceNum int
-	From        int
-	Ack         bool
-	Message     string
+	//SequenceNum int
+	From  int
+	Acks  []int
+	Event Event
 }
 
 func New(id int) *Distributor {
-	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
-	localAddr := &net.UDPAddr{IP: localIp, Port: PORT}
+	d := new(Distributor)
 
-	conn, err := net.ListenUDP("udp", localAddr)
-	if err == nil {
-		log.Debugf("Listening on %v", conn.LocalAddr().String())
-	} else {
-		log.Panic(err)
-	}
+	go d.spin()
 
-	return &Distributor{conn, id}
+	return d
 }
+
+func (d *Distributor) spin() {
+	for {
+		select {
+		case event := <-d.EventIn:
+			d.handleEvent(event)
+		case datagram := <-d.datagramIn:
+			d.handleDatagram(datagram)
+		case timedoutDatagram := <-d.timedoutDatagrams:
+			d.handleTimedoutDatagrams(timedoutDatagram)
+		}
+	}
+}
+
+func (d *Distributor) handleEvent(event Event) {
+	d.emit(event)
+	d.datagramIn <- Datagram{d.id, []int{d.id}, event}
+}
+
+func (d *Distributor) handleDatagram(datagram Datagram) {
+
+}
+
+func (d *Distributor) handleTimedoutDatagrams(datagram Datagram) {
+
+}
+
+func (d *Distributor) emit(event Event) {}
 
 func (d *Distributor) SendDatagram(datagram Datagram) {
 	var buf bytes.Buffer
@@ -45,7 +76,7 @@ func (d *Distributor) SendDatagram(datagram Datagram) {
 		log.Panic(err)
 	}
 
-	n, err := d.Conn.WriteToUDP(buf.Bytes(), BROADCAST_ADDR)
+	n, err := d.conn.WriteToUDP(buf.Bytes(), BROADCAST_ADDR)
 	if err != nil {
 		log.Panic(err)
 	} else {
@@ -57,7 +88,7 @@ func (d *Distributor) ReceiveDatagram() (datagram Datagram) {
 	buf_size := 2048
 	buf := make([]byte, buf_size)
 
-	n, addr, err := d.Conn.ReadFrom(buf)
+	n, addr, err := d.conn.ReadFrom(buf)
 	if err != nil {
 		log.Panic(err)
 	} else if n == buf_size {

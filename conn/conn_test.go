@@ -3,7 +3,14 @@ package conn
 import (
 	"net"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
+
+func init() {
+	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{ForceColors: true})
+}
 
 func TestSendAndReceive(t *testing.T) {
 	ip := net.ParseIP("127.0.0.1")

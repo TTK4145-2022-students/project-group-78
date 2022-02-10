@@ -9,7 +9,7 @@ import (
 
 func init() {
 	log.SetLevel(log.DebugLevel)
-	log.SetFormatter(&log.TextFormatter{ForceColors: true})
+	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true, TimestampFormat: "15:04:05"})
 }
 
 func TestSendAndReceive(t *testing.T) {

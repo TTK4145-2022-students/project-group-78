@@ -18,9 +18,8 @@ func TestSendAndReceive(t *testing.T) {
 	conn := New(ip, port, ip, port)
 
 	sent := "Hello"
-
-	conn.Send([]byte(sent))
-	got := string(conn.Receive())
+	conn.Send <- []byte(sent)
+	got := string(<-conn.Receive)
 
 	if sent != got {
 		t.Error("sent", sent, "got", got)

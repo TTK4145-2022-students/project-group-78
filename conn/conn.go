@@ -9,7 +9,9 @@ import (
 const MAX_PACKET_SIZE = 1024
 
 type Conn struct {
-	conn *net.UDPConn
+	Send    chan []byte
+	Receive chan []byte
+	conn    *net.UDPConn
 }
 
 func New(localIp net.IP, localPort int, remoteIp net.IP, remotePort int) *Conn {
@@ -22,10 +24,37 @@ func New(localIp net.IP, localPort int, remoteIp net.IP, remotePort int) *Conn {
 		log.Debugf("Dialed up %v from %v", remoteAddr.String(), localAddr.String())
 	}
 
-	return &Conn{conn}
+	c := &Conn{
+		Send:   make(chan []byte, 100),
+		Receive:  make(chan []byte, 100),
+		conn: conn,
+	}
+
+	go c.sendForever()
+	go c.receiveForever()
+
+	return c
 }
 
-func (c *Conn) Send(packet []byte) {
+func (c *Conn) sendForever() {
+	for {
+		if len(c.Send) == cap(c.Send) {
+			log.Panic("Send channel full")
+		}
+		c.send(<-c.Send)
+	}
+}
+
+func (c *Conn) receiveForever() {
+	for {
+		if len(c.Receive) == cap(c.Receive) {
+			log.Panic("Receive channel full")
+		}
+		c.Receive <- c.receive()
+	}
+}
+
+func (c *Conn) send(packet []byte) {
 	if len(packet) > MAX_PACKET_SIZE {
 		log.Panicf("Packet size (%v) cannot exceed %v", len(packet), MAX_PACKET_SIZE)
 	}
@@ -38,7 +67,7 @@ func (c *Conn) Send(packet []byte) {
 	}
 }
 
-func (c *Conn) Receive() []byte {
+func (c *Conn) receive() []byte {
 	packet := make([]byte, MAX_PACKET_SIZE)
 	n, addr, err := c.conn.ReadFromUDP(packet)
 	if err != nil {

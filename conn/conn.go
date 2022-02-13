@@ -9,25 +9,26 @@ import (
 const MAX_PACKET_SIZE = 1024
 
 type Conn struct {
-	Send    chan []byte
-	Receive chan []byte
-	conn    *net.UDPConn
+	Send       chan []byte
+	Receive    chan []byte
+	conn       *net.UDPConn
+	remoteAddr *net.UDPAddr
 }
 
 func New(localIp net.IP, localPort int, remoteIp net.IP, remotePort int) *Conn {
-	localAddr := net.UDPAddr{IP: localIp, Port: localPort}
-	remoteAddr := net.UDPAddr{IP: remoteIp, Port: remotePort}
-	conn, err := net.DialUDP("udp", &localAddr, &remoteAddr)
+	localAddr := &net.UDPAddr{IP: localIp, Port: localPort}
+	conn, err := net.ListenUDP("udp", localAddr)
 	if err != nil {
 		log.Panic(err)
 	} else {
-		log.Debugf("Dialed up %v from %v", remoteAddr.String(), localAddr.String())
+		log.Debugf("Listening to %v", localAddr.String())
 	}
 
 	c := &Conn{
-		Send:   make(chan []byte, 100),
-		Receive:  make(chan []byte, 100),
-		conn: conn,
+		Send:       make(chan []byte, 100),
+		Receive:    make(chan []byte, 100),
+		conn:       conn,
+		remoteAddr: &net.UDPAddr{IP: remoteIp, Port: remotePort},
 	}
 
 	go c.sendForever()
@@ -59,11 +60,11 @@ func (c *Conn) send(packet []byte) {
 		log.Panicf("Packet size (%v) cannot exceed %v", len(packet), MAX_PACKET_SIZE)
 	}
 
-	n, err := c.conn.Write(packet)
+	n, err := c.conn.WriteToUDP(packet, c.remoteAddr)
 	if err != nil {
 		log.Panic(err)
 	} else {
-		log.Debugf("Sent %v bytes to %v", n, c.conn.RemoteAddr().String())
+		log.Debugf("Sent %v bytes to %v", n, c.remoteAddr.String())
 	}
 }
 

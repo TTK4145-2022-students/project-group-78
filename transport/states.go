@@ -15,7 +15,6 @@ const (
 
 func (t *Transport) idle() {
 	if message, got := t.getMessage(); got {
-		//Logger.Debugf("Got message %v while idle", message)
 		t.sendMessage(message, t.id)
 		t.state = sending
 
@@ -23,7 +22,6 @@ func (t *Transport) idle() {
 		// Acks when idling are irrelevant
 
 	} else if datagram, got := t.getDatagram(); got {
-		//Logger.Debugf("Got datagram %v while idle", datagram)
 		if datagram.Seq < t.seq {
 			// We have already acked this one before, so we will blindly ack it again
 			t.sendAck(datagram)
@@ -52,7 +50,6 @@ func (t *Transport) sending() {
 		}
 
 	} else if datagram, got := t.getDatagram(); got {
-		//Logger.Debugf("Got datagram %v while sending", datagram)
 		if datagram.Seq < t.seq {
 			// We have already acked this one before, so we will blindly ack it again
 			t.sendAck(datagram)
@@ -64,10 +61,10 @@ func (t *Transport) sending() {
 				if t.messageOrigin == t.id {
 					// If we are currently sending one of our own messages, we need to stash it first before yielding
 					if t.stash != nil {
-						//Logger.Panicf("Stash contained %v when trying to stash %v", t.stash, datagram.Message)
+						Logger.Panicf("Stash contained %v when trying to stash %v", t.stash, datagram.Message)
 					}
 					t.stash = datagram.Message
-					//Logger.Debugf("Stashed %v", t.stash)
+					Logger.Debugf("Stashed %v", t.stash)
 
 					t.messageAcks = []int{}
 				}
@@ -78,7 +75,8 @@ func (t *Transport) sending() {
 			}
 		}
 
-	} else if time.Now().Sub(t.messageSent) >= 1000*time.Millisecond { // TODO: add timeout as param, todo change
+		// TODO: add timeout as param
+	} else if time.Now().Sub(t.messageSent) >= 10*time.Millisecond {
 		t.sendMessage(t.message, t.messageOrigin)
 	}
 }

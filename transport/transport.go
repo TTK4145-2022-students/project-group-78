@@ -11,6 +11,8 @@ import (
 
 var Logger = utils.NewLogger()
 
+// TODO: add logging
+
 type Transport struct {
 	Send    chan []byte
 	Receive chan []byte

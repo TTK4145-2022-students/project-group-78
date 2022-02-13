@@ -30,6 +30,7 @@ func TestDatagramSerialization(t *testing.T) {
 }
 
 func TestTransport(t *testing.T) {
+	// Must have broadcast on 127.255.255.255
 	ip := net.ParseIP("127.255.255.255")
 	t1 := New(1, ip, []int{2})
 	t2 := New(2, ip, []int{1})

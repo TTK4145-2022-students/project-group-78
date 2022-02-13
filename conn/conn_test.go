@@ -4,12 +4,11 @@ import (
 	"net"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
-	log.SetLevel(log.DebugLevel)
-	log.SetFormatter(&log.TextFormatter{ForceColors: true, FullTimestamp: true, TimestampFormat: "15:04:05"})
+	Logger.SetLevel(logrus.DebugLevel)
 }
 
 func TestSendAndReceive(t *testing.T) {

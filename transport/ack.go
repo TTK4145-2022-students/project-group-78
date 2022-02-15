@@ -13,7 +13,7 @@ type ack struct {
 
 func (t *Transport) sendAck(datagram datagram) {
 	ack := ack{t.seq, datagram.Origin, t.id}	
-	t.ackConn.Send <- ack.serialize()
+	t.ackConn.Send(ack.serialize())
 	Logger.Debugf("Sent ack %+v", ack)
 }
 

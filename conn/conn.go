@@ -1,9 +1,13 @@
 package conn
 
 import (
+	"errors"
+	"fmt"
 	"net"
 
 	"github.com/TTK4145-2022-students/project-group-78/utils"
+	"github.com/sirupsen/logrus"
+	"github.com/tevino/abool"
 )
 
 var Logger = utils.NewLogger()
@@ -11,72 +15,73 @@ var Logger = utils.NewLogger()
 const MAX_PACKET_SIZE = 1024
 
 type Conn struct {
-	Send       chan []byte
-	Receive    chan []byte
+	Receive chan []byte
+
 	conn       *net.UDPConn
 	remoteAddr *net.UDPAddr
+	logger     *logrus.Entry
+	closed     abool.AtomicBool
 }
 
 func New(localIp net.IP, localPort int, remoteIp net.IP, remotePort int) *Conn {
 	localAddr := &net.UDPAddr{IP: localIp, Port: localPort}
-	conn, err := net.ListenUDP("udp", localAddr)
-	if err != nil {
-		Logger.Panic(err)
-	} else {
-		Logger.Debugf("Listening to %v", localAddr.String())
-	}
-
 	c := &Conn{
-		Send:       make(chan []byte, 100),
-		Receive:    make(chan []byte, 100),
-		conn:       conn,
+		Receive:    make(chan []byte, 128),
 		remoteAddr: &net.UDPAddr{IP: remoteIp, Port: remotePort},
+		logger:     Logger.WithField("connAddr", localAddr.String()),
+		closed:     *abool.New(),
 	}
 
-	go c.sendForever()
+	var err error
+	c.conn, err = net.ListenUDP("udp", localAddr)
+	if err != nil {
+		c.logger.Panic(err)
+	} else {
+		c.logger.Debug("Listening")
+	}
+
 	go c.receiveForever()
 
 	return c
 }
 
-func (c *Conn) sendForever() {
-	for {
-		if len(c.Send) == cap(c.Send) {
-			Logger.Panic("Send channel full")
-		}
-		c.send(<-c.Send)
-	}
-}
-
 func (c *Conn) receiveForever() {
-	for {
-		if len(c.Receive) == cap(c.Receive) {
-			Logger.Panic("Receive channel full")
+	for c.closed.IsNotSet() {
+		packet := make([]byte, MAX_PACKET_SIZE)
+		n, addr, err := c.conn.ReadFromUDP(packet)
+		if err != nil {
+			if c.closed.IsSet() {
+				return
+			} else {
+				c.logger.Panic(err)
+			}
+		} else {
+			c.logger.WithField("from", addr.String()).WithField("size", n).Debug("Received")
 		}
-		c.Receive <- c.receive()
+		c.Receive <- packet[0:n]
 	}
 }
 
-func (c *Conn) send(packet []byte) {
+func (c *Conn) Send(packet []byte) error {
 	if len(packet) > MAX_PACKET_SIZE {
-		Logger.Panicf("Packet size (%v) cannot exceed %v", len(packet), MAX_PACKET_SIZE)
+		return errors.New(fmt.Sprintf("packet size (%v) cannot exceed %v", len(packet), MAX_PACKET_SIZE))
 	}
 
 	n, err := c.conn.WriteToUDP(packet, c.remoteAddr)
-	if err != nil {
-		Logger.Panic(err)
+	if err == nil {
+		c.logger.WithField("to", c.remoteAddr.String()).WithField("size", n).Debug("Sent")
 	} else {
-		Logger.Debugf("Sent %v bytes to %v", n, c.remoteAddr.String())
+		c.logger.WithField("to", c.remoteAddr.String()).WithField("size", n).Panic(err)
 	}
+	return err
 }
 
-func (c *Conn) receive() []byte {
-	packet := make([]byte, MAX_PACKET_SIZE)
-	n, addr, err := c.conn.ReadFromUDP(packet)
+func (c *Conn) Close() {
+	c.closed.Set()
+	err := c.conn.Close()
 	if err != nil {
-		Logger.Panic(err)
+		c.logger.Panic(err)
 	} else {
-		Logger.Debugf("Received %v bytes from %v", n, addr.String())
+		c.logger.Debugf("Closed")
 	}
-	return packet[0:n]
 }

@@ -90,6 +90,6 @@ func (t *Transport) sendMessage(message []byte, origin int) {
 	t.messageSent = time.Now()
 
 	datagram := datagram{t.seq, origin, message}
-	t.datagramConn.Send <- datagram.serialize()
+	t.datagramConn.Send(datagram.serialize())
 	Logger.Debugf("Sent datagram %+v", datagram)
 }

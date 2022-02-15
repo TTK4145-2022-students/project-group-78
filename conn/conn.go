@@ -20,7 +20,7 @@ type Conn struct {
 	conn       *net.UDPConn
 	remoteAddr *net.UDPAddr
 	logger     *logrus.Entry
-	closed     abool.AtomicBool
+	closed     *abool.AtomicBool
 }
 
 func New(localIp net.IP, localPort int, remoteIp net.IP, remotePort int) *Conn {
@@ -29,7 +29,7 @@ func New(localIp net.IP, localPort int, remoteIp net.IP, remotePort int) *Conn {
 		Receive:    make(chan []byte, 128),
 		remoteAddr: &net.UDPAddr{IP: remoteIp, Port: remotePort},
 		logger:     Logger.WithField("connAddr", localAddr.String()),
-		closed:     *abool.New(),
+		closed:     abool.New(),
 	}
 
 	var err error

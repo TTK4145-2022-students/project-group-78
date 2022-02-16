@@ -7,8 +7,8 @@ import (
 
 type ack struct {
 	Seq    int
-	Origin int
-	From   int
+	Origin byte
+	From   byte
 }
 
 func (t *Transport) sendAck(datagram datagram) {

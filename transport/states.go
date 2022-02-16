@@ -44,7 +44,7 @@ func (t *Transport) sending() {
 			if utils.Subset(t.peers, t.messageAcks) {
 				t.Receive <- t.message
 				t.seq++
-				t.messageAcks = []int{}
+				t.messageAcks = []byte{}
 				t.state = idle
 			}
 		}
@@ -66,7 +66,7 @@ func (t *Transport) sending() {
 					t.stash = datagram.Message
 					Logger.Debugf("Stashed %v", t.stash)
 
-					t.messageAcks = []int{}
+					t.messageAcks = []byte{}
 				}
 				t.sendAck(datagram)
 				t.sendMessage(datagram.Message, datagram.Origin)

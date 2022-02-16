@@ -31,8 +31,8 @@ func TestDatagramSerialization(t *testing.T) {
 }
 
 func TestTransport(t *testing.T) {
-	t1 := New(1, []int{2})
-	t2 := New(2, []int{1})
+	t1 := New(1, []byte{2})
+	t2 := New(2, []byte{1})
 
 	b1 := mocknet.New(config.ACK_PORT)
 	b2 := mocknet.New(config.DATAGRAM_PORT)

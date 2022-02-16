@@ -7,7 +7,7 @@ import (
 
 type datagram struct {
 	Seq     int
-	Origin  int
+	Origin  byte
 	Message []byte
 }
 

@@ -1,7 +1,7 @@
 package utils
 
-func Member(n int, set []int) bool {
-	for m := range set {
+func Member(n byte, set []byte) bool {
+	for _, m := range set {
 		if n == m {
 			return true
 		}
@@ -9,8 +9,8 @@ func Member(n int, set []int) bool {
 	return false
 }
 
-func Subset(subset []int, superset []int) bool {
-	for n := range subset {
+func Subset(subset []byte, superset []byte) bool {
+	for _, n := range subset {
 		if !Member(n, superset) {
 			return false
 		}

@@ -18,22 +18,22 @@ type Transport struct {
 	Send    chan []byte
 	Receive chan []byte
 
-	id           int
+	id           byte
 	state        state
-	peers        []int
+	peers        []byte
 	ackConn      *conn.Conn
 	datagramConn *conn.Conn
 	seq          int
 
 	message       []byte
-	messageOrigin int
-	messageAcks   []int
+	messageOrigin byte
+	messageAcks   []byte
 	messageSent   time.Time
 
 	stash []byte
 }
 
-func New(id int, peers []int) *Transport {
+func New(id byte, peers []byte) *Transport {
 	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
 
 	t := &Transport{
@@ -84,7 +84,7 @@ func (t *Transport) getMessage() (message []byte, got bool) {
 	return
 }
 
-func (t *Transport) sendMessage(message []byte, origin int) {
+func (t *Transport) sendMessage(message []byte, origin byte) {
 	t.message = message
 	t.messageOrigin = origin
 	t.messageSent = time.Now()

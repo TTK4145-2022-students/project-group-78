@@ -1,4 +1,8 @@
 import "Driver-go/elevio"
+
+
+type relative_position int
+
 const (
 	Above relative_position = iota
 	Neutral  
@@ -6,41 +10,46 @@ const (
 )
 
 type LocalState struct{
+	target int;
 	current_floor int;
 	relative_position relative_position;
-	target int;
+	doorOpen bool;
+	motor_dir MotorDirection;
 }
 
-local_state = LocalState{-1, Neutral};
-
-func update_local_state(motor_dir_up_down bool,current_floor chan int, target int){
-	current_floor := <-current_floor;
-	if motor_dir_up_down{
-
-	}
-}
-func start_move_towards_target(new_target int){
-	int current_floor = get_current_floor();
-	if ready_to_serve_new_order{
-		if current_floor == target {
-
-		}
-		else if current_floor < target {
-			set_motor_dir(up);
-		}
-		else {
-			set_motor_dir(down);
-		}
-	}
-}
-
-ready_to_serve_new_order = true;
+local_state = LocalState{-1,-1, Neutral, false, MD_Stop};
 
 func run_elevator(){
-	current_floor_chan = make(chan int);
-	target_chan = make(chan int);
+	addr = "11111"
+	numFloors = 5
+	Init(addr, numFloors);
 
-	go PollFloorSensors(receiver_current_floor);
-	go update_local_state(receiver_current_floor);
+	for {
+		if (event){
+			switch event.type{
 
+				case floorSensorTriggered:
+					current_floor == event.floor
+					if current_floor == target{
+						elevator_finished_order();
+						go door_open();
+					}
+					switch local_state.motor_dir{
+						case MD_Up:
+							local_state.relative_position = Above;
+						case MD_Down:
+							local_state.relative_position = Below;
+						case MD_Stop:
+							local_state.relative_position = Neutral;
+						default:
+					}
+
+				case newTarget:
+					start_motor_towards_target(event.target)
+					local_state.target = event.target
+
+				default:
+			}
+		}
+	}
 }

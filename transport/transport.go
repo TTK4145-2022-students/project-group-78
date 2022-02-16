@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/conn"
 	"github.com/TTK4145-2022-students/project-group-78/utils"
 )
@@ -32,9 +33,8 @@ type Transport struct {
 	stash []byte
 }
 
-func New(id int, remoteIp net.IP, peers []int) *Transport {
+func New(id int, peers []int) *Transport {
 	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
-	ackPort, datagramPort := 41785, 41786 // TODO: Add this as parameter
 
 	t := &Transport{
 		Send:    make(chan []byte, 10),
@@ -43,8 +43,8 @@ func New(id int, remoteIp net.IP, peers []int) *Transport {
 		id:           id,
 		state:        idle,
 		peers:        peers,
-		ackConn:      conn.New(localIp, ackPort, remoteIp, ackPort),
-		datagramConn: conn.New(localIp, datagramPort, remoteIp, datagramPort),
+		ackConn:      conn.New(localIp, config.ACK_PORT, config.BROADCAST_IP, config.ACK_PORT),
+		datagramConn: conn.New(localIp, config.DATAGRAM_PORT, config.BROADCAST_IP, config.DATAGRAM_PORT),
 		seq:          1,
 	}
 

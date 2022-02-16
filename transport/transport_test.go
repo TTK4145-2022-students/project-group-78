@@ -1,9 +1,10 @@
 package transport
 
 import (
-	"net"
 	"testing"
 
+	"github.com/TTK4145-2022-students/project-group-78/config"
+	"github.com/TTK4145-2022-students/project-group-78/mocknet"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,10 +31,13 @@ func TestDatagramSerialization(t *testing.T) {
 }
 
 func TestTransport(t *testing.T) {
-	// Must have broadcast on 127.255.255.255
-	ip := net.ParseIP("127.255.255.255")
-	t1 := New(1, ip, []int{2})
-	t2 := New(2, ip, []int{1})
+	t1 := New(1, []int{2})
+	t2 := New(2, []int{1})
+
+	b1 := mocknet.New(config.ACK_PORT)
+	b2 := mocknet.New(config.DATAGRAM_PORT)
+	defer b1.Close()
+	defer b2.Close()
 
 	sent := "Hello"
 	t1.Send <- []byte(sent)

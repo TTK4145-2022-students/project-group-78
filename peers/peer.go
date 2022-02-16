@@ -20,7 +20,7 @@ type Peer struct {
 	id    byte
 }
 
-func (p *Peer) New(id byte) *Peer {
+func New(id byte) *Peer {
 	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
 	port := 61523
 	return &Peer{

@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	Logger.SetLevel(logrus.DebugLevel)
+	Logger.Logger.SetLevel(logrus.DebugLevel)
 }
 
 func TestAckSerialization(t *testing.T) {

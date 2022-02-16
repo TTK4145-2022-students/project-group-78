@@ -15,89 +15,90 @@ const (
 )
 
 func (t *Transport) idle() {
-	logger := t.logger.WithField("state", "idle")
 	if message, got := t.getMessage(); got {
 		t.sendMessage(message, t.id)
-		t.state = sending
-		logger.Debug("transmitted message")
+		t.log().Debug("transmitted orginal message")
+		t.state = sending		
 
-	} else if _, got := t.getAck(); got {
-		logger.Debug("ignored ack")
+	} else if ack, got := t.getAck(); got {
 		// Acks when idling are irrelevant
+		t.logAck(ack).Debug("ignored ack")
 
 	} else if datagram, got := t.getDatagram(); got {
 		if datagram.Seq < t.seq {
 			// We have already acked this one before, so we will blindly ack it again
 			t.sendAck(datagram)
-			logger.Debug("re-acked")
+			t.logDatagram(datagram).Debug("re-acked datagram")
 		} else if datagram.Seq > t.seq {
-			logger.Debug("ignored datagram")
 			// We do not handle the future
-		} else {			
+			t.logDatagram(datagram).Debug("ignored datagram")
+		} else {
 			t.sendAck(datagram)
-			logger.Debug("acked")
+			t.logDatagram(datagram).Debug("acked")
 			if datagram.Origin != t.id {
 				t.sendMessage(datagram.Message, datagram.Origin)
-				logger.Debug("transmitted message")
-				t.state = sending
+				t.logDatagram(datagram).Debug("retransmitted as own")
+				t.state = sending				
 			}
 		}
 	}
 }
 
 func (t *Transport) sending() {
-	logger := t.logger.WithField("state", "sending")
 	if ack, got := t.getAck(); got {
 		if ack.Seq == t.seq && ack.Origin == t.messageOrigin && !utils.Member(ack.From, t.messageAcks) {
 			t.messageAcks = append(t.messageAcks, ack.From)
-			logger.Debug("registered ack")
+			t.logAck(ack).Debug("registered ack")
 			if utils.Subset(t.peers, t.messageAcks) {
 				t.Receive <- t.message
 				t.seq++
 				t.messageAcks = []byte{}
-				logger.WithField("seq", t.seq).Debug("finished transmission")
+				t.log().Debug("finished transmission")
 				t.state = idle
 			}
 		} else {
-			logger.Debug("ignored ack")
+			t.logAck(ack).Debug("ignored ack")
 		}
 
 	} else if datagram, got := t.getDatagram(); got {
 		if datagram.Seq < t.seq {
 			// We have already acked this one before, so we will blindly ack it again
 			t.sendAck(datagram)
-			logger.Debug("re-acked")
+			t.logDatagram(datagram).Debug("re-acked datagram")
 		} else if datagram.Seq > t.seq {
-			logger.Debug("ignored datagram")
 			// We do not handle the future
+			t.logDatagram(datagram).Debug("ignored datagram")
 		} else {
 			if datagram.Origin < t.messageOrigin {
-				logger.Debug("yielding")
+				t.logDatagram(datagram).Debug("yielding for datagram")
 				// We must yield for the lower origin datagram, i.e. drop the message we are currently sending
 				if t.messageOrigin == t.id {
 					// If we are currently sending one of our own messages, we need to stash it first before yielding
 					if t.stash != nil {
-						logger.Panic("stash was not empty")
+						t.log().Panic("stash was not empty")
 					}
 					t.stash = datagram.Message
-					logger.Debug("stashed message")
-
-					t.messageAcks = []byte{}
-					logger.Debug("resat acks")
+					t.log().Debug("stashed message")
 				}
+				t.messageAcks = []byte{}
+				t.log().Debug("resat acks")
+
 				t.sendAck(datagram)
-				logger.Debug("acked")
+				t.logDatagram(datagram).Debug("acked")
+
 				t.sendMessage(datagram.Message, datagram.Origin)
-				logger.Debug("transmitted")
+				t.logDatagram(datagram).Debug("retransmitted as own")
 			} else if datagram.Origin == t.messageOrigin {
 				t.sendAck(datagram)
-				logger.Debug("acked")
+				t.logDatagram(datagram).Debug("acked")
+			} else {
+				t.log().Debug("ignored datagram")
 			}
 		}
 
 		// TODO: add timeout as param
-	} else if time.Now().Sub(t.messageSent) >= config.RETRANSMIT_INTERVAL {		
+	} else if time.Now().Sub(t.messageSent) >= config.RETRANSMIT_INTERVAL {
 		t.sendMessage(t.message, t.messageOrigin)
-		t.logger.Trace("retransmitted")
+		t.log().Debug("retransmitted")
 	}
 }

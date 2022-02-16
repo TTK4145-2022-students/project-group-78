@@ -34,7 +34,7 @@ func (t *Transport) getAck() (ack, bool) {
 	select {
 	case data := <-t.ackConn.Receive:
 		ack := parseAck(data)
-		t.logAck(ack).Debug("received ack")
+		t.logAck(ack).Trace("received ack")
 		return ack, true
 	default:
 		return ack{}, false
@@ -42,7 +42,11 @@ func (t *Transport) getAck() (ack, bool) {
 }
 
 func (t *Transport) logAck(ack ack) *logrus.Entry {
-	return t.logger.WithFields(logrus.Fields{"seq": ack.Seq, "origin": ack.Origin, "from": ack.From})
+	return t.log().WithField("ack", logrus.Fields{
+		"seq":    ack.Seq,
+		"origin": ack.Origin,
+		"from":   ack.From,
+	})
 }
 
 func PanicIf(err error) {

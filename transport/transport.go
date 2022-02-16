@@ -12,7 +12,7 @@ import (
 	"github.com/tevino/abool"
 )
 
-var Logger = utils.NewLogger()
+var Logger = utils.NewLogger("transport")
 
 type Transport struct {
 	Send    chan []byte
@@ -48,13 +48,23 @@ func New(id byte, peers []byte) *Transport {
 		ackConn:      conn.New(localIp, config.ACK_PORT, config.BROADCAST_IP, config.ACK_PORT),
 		datagramConn: conn.New(localIp, config.DATAGRAM_PORT, config.BROADCAST_IP, config.DATAGRAM_PORT),
 		seq:          1,
-		logger:       Logger.WithField("id", id).WithField("pkg", "transport"),
+		logger:       Logger,
 		closed:       abool.New(),
 	}
 
 	go t.runForever()
 
 	return t
+}
+
+func (t *Transport) log() *logrus.Entry {
+	return t.logger.WithField("transport", logrus.Fields{
+		"id":    t.id,
+		"state": t.state,
+		"peers": t.peers,
+		"seq":   t.seq,
+		"acks":  t.messageAcks,
+	})
 }
 
 func (t *Transport) Close() {

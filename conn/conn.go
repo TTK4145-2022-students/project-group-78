@@ -11,7 +11,7 @@ import (
 	"github.com/tevino/abool"
 )
 
-var Logger = utils.NewLogger()
+var Logger = utils.NewLogger("conn")
 
 const MAX_PACKET_SIZE = 1024
 

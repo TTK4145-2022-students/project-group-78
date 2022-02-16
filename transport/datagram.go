@@ -28,13 +28,16 @@ func (t *Transport) getDatagram() (datagram, bool) {
 	select {
 	case data := <-t.datagramConn.Receive:
 		datagram := parseDatagram(data)
-		t.logDatagram(datagram).Debug("received datagram")
+		t.logDatagram(datagram).Trace("received datagram")
 		return datagram, true
 	default:
 		return datagram{}, false
 	}
 }
 
-func (t *Transport) logDatagram(d datagram) *logrus.Entry {
-	return t.logger.WithFields(logrus.Fields{"seq": d.Seq, "origin": d.Origin})
+func (t *Transport) logDatagram(datagram datagram) *logrus.Entry {
+	return t.log().WithField("datagram", logrus.Fields{
+		"seq":    datagram.Seq,
+		"origin": datagram.Origin,
+	})
 }

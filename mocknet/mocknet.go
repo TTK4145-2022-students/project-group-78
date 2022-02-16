@@ -13,7 +13,7 @@ import (
 	"github.com/tevino/abool"
 )
 
-var Logger = utils.NewLogger()
+var Logger = utils.NewLogger("mocknet")
 
 type Mocknet struct {
 	LossPercentage chan int

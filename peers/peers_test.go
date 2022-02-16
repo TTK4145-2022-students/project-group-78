@@ -21,13 +21,13 @@ func TestPeer(t *testing.T) {
 	defer p1.Close()
 	defer p2.Close()
 
-	broadcaster := mocknet.New(config.HEARTBEAT_PORT)
-	defer broadcaster.Close()
+	mocknet := mocknet.New(config.HEARTBEAT_PORT)
+	defer mocknet.Close()
 
 	peers := make(chan []byte, 10)
 	p1.Subscribe(peers)
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
 
 	var p []byte
 	for len(peers) != 0 {
@@ -45,9 +45,9 @@ func TestPeerWithPacketLoss(t *testing.T) {
 	defer p1.Close()
 	defer p2.Close()
 
-	broadcaster := mocknet.New(config.HEARTBEAT_PORT)
-	broadcaster.DropPercentage <- 50
-	defer broadcaster.Close()
+	mocknet := mocknet.New(config.HEARTBEAT_PORT)
+	mocknet.LossPercentage <- 50
+	defer mocknet.Close()
 
 	peers := make(chan []byte, 10)
 	p1.Subscribe(peers)

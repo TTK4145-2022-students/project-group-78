@@ -5,11 +5,12 @@ import (
 
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/mocknet"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	Logger.SetLevel(log.DebugLevel)
+	Logger.SetLevel(logrus.DebugLevel)
 }
 
 func TestAckSerialization(t *testing.T) {
@@ -31,19 +32,41 @@ func TestDatagramSerialization(t *testing.T) {
 }
 
 func TestTransport(t *testing.T) {
-	t1 := New(1, []byte{2})
-	t2 := New(2, []byte{1})
+	peers := []byte{1, 2}
+	t1 := New(1, peers)
+	t2 := New(2, peers)
+	defer t1.Close()
+	defer t2.Close()
 
-	b1 := mocknet.New(config.ACK_PORT)
-	b2 := mocknet.New(config.DATAGRAM_PORT)
-	defer b1.Close()
-	defer b2.Close()
+	m1 := mocknet.New(config.ACK_PORT)
+	m2 := mocknet.New(config.DATAGRAM_PORT)
+	defer m1.Close()
+	defer m2.Close()
 
 	sent := "Hello"
 	t1.Send <- []byte(sent)
 	got := string(<-t2.Receive)
 
-	if sent != got {
-		t.Error("sent", sent, "got", got)
-	}
+	assert.Equal(t, sent, got)
+}
+
+func TestTransportWithLoss(t *testing.T) {
+	peers := []byte{1, 2}
+	t1 := New(1, peers)
+	t2 := New(2, peers)
+	defer t1.Close()
+	defer t2.Close()
+
+	m1 := mocknet.New(config.ACK_PORT)
+	m2 := mocknet.New(config.DATAGRAM_PORT)
+	m1.LossPercentage <- 50
+	m2.LossPercentage <- 50
+	defer m1.Close()
+	defer m2.Close()
+
+	sent := "Hello"
+	t1.Send <- []byte(sent)
+	got := string(<-t1.Receive)
+
+	assert.Equal(t, sent, got)
 }

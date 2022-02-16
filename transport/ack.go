@@ -3,6 +3,8 @@ package transport
 import (
 	"bytes"
 	"encoding/gob"
+
+	"github.com/sirupsen/logrus"
 )
 
 type ack struct {
@@ -12,9 +14,9 @@ type ack struct {
 }
 
 func (t *Transport) sendAck(datagram datagram) {
-	ack := ack{t.seq, datagram.Origin, t.id}	
+	ack := ack{datagram.Seq, datagram.Origin, t.id}
 	t.ackConn.Send(ack.serialize())
-	Logger.Debugf("Sent ack %+v", ack)
+	t.logAck(ack).Trace("sent ack")
 }
 
 func parseAck(b []byte) (a ack) {
@@ -31,10 +33,16 @@ func (a ack) serialize() []byte {
 func (t *Transport) getAck() (ack, bool) {
 	select {
 	case data := <-t.ackConn.Receive:
-		return parseAck(data), true
+		ack := parseAck(data)
+		t.logAck(ack).Debug("received ack")
+		return ack, true
 	default:
 		return ack{}, false
 	}
+}
+
+func (t *Transport) logAck(ack ack) *logrus.Entry {
+	return t.logger.WithFields(logrus.Fields{"seq": ack.Seq, "origin": ack.Origin, "from": ack.From})
 }
 
 func PanicIf(err error) {

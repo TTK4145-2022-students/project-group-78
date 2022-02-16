@@ -8,11 +8,11 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/conn"
 	"github.com/TTK4145-2022-students/project-group-78/utils"
+	"github.com/sirupsen/logrus"
+	"github.com/tevino/abool"
 )
 
 var Logger = utils.NewLogger()
-
-// TODO: add logging
 
 type Transport struct {
 	Send    chan []byte
@@ -24,6 +24,8 @@ type Transport struct {
 	ackConn      *conn.Conn
 	datagramConn *conn.Conn
 	seq          int
+	logger       *logrus.Entry
+	closed       *abool.AtomicBool
 
 	message       []byte
 	messageOrigin byte
@@ -46,11 +48,20 @@ func New(id byte, peers []byte) *Transport {
 		ackConn:      conn.New(localIp, config.ACK_PORT, config.BROADCAST_IP, config.ACK_PORT),
 		datagramConn: conn.New(localIp, config.DATAGRAM_PORT, config.BROADCAST_IP, config.DATAGRAM_PORT),
 		seq:          1,
+		logger:       Logger.WithField("id", id).WithField("pkg", "transport"),
+		closed:       abool.New(),
 	}
 
 	go t.runForever()
 
 	return t
+}
+
+func (t *Transport) Close() {
+	t.closed.Set()
+	time.Sleep(10 * time.Millisecond)
+	t.ackConn.Close()
+	t.datagramConn.Close()
 }
 
 func (t *Transport) run() {
@@ -64,7 +75,7 @@ func (t *Transport) run() {
 }
 
 func (t *Transport) runForever() {
-	for {
+	for t.closed.IsNotSet() {
 		t.run()
 	}
 }
@@ -91,5 +102,5 @@ func (t *Transport) sendMessage(message []byte, origin byte) {
 
 	datagram := datagram{t.seq, origin, message}
 	t.datagramConn.Send(datagram.serialize())
-	Logger.Debugf("Sent datagram %+v", datagram)
+	t.logDatagram(datagram).Trace("sent datagram")
 }

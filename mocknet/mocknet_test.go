@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/conn"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -16,11 +17,13 @@ func init() {
 
 func TestNoDrop(t *testing.T) {
 	port := 41875
-	conn := conn.New(net.ParseIP("127.0.0.1"), port, net.ParseIP("127.255.255.255"), port)
+	conn := conn.New(net.ParseIP("127.0.0.1"), port, config.BROADCAST_IP, port)
 	defer conn.Close()
 
-	broadcaster := New(port)
-	defer broadcaster.Close()
+	mocknet := New(port)
+	defer mocknet.Close()
+
+	time.Sleep(10 * time.Microsecond)
 
 	val := []byte{1}
 	assert.Nil(t, conn.Send(val))
@@ -29,12 +32,12 @@ func TestNoDrop(t *testing.T) {
 
 func TestDrop(t *testing.T) {
 	port := 41875
-	conn := conn.New(net.ParseIP("127.0.0.1"), port, net.ParseIP("127.255.255.255"), port)
+	conn := conn.New(net.ParseIP("127.0.0.1"), port, config.BROADCAST_IP, port)
 	defer conn.Close()
 
-	broadcaster := New(port)
-	broadcaster.DropPercentage <- 25
-	defer broadcaster.Close()
+	mocknet := New(port)
+	mocknet.LossPercentage <- 50
+	defer mocknet.Close()
 
 	val := []byte{1}
 	for i := 0; i < 100; i++ {
@@ -50,6 +53,5 @@ func TestDrop(t *testing.T) {
 		default:
 		}
 	}
-	broadcaster.logger.Info(c)
-	assert.False(t, c < 65 || c > 85)
+	assert.False(t, c < 15 || c > 35)
 }

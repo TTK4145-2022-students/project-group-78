@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/utils"
 	"github.com/sirupsen/logrus"
@@ -28,7 +29,7 @@ func New(localIp net.IP, localPort int, remoteIp net.IP, remotePort int) *Conn {
 	c := &Conn{
 		Receive:    make(chan []byte, 128),
 		remoteAddr: &net.UDPAddr{IP: remoteIp, Port: remotePort},
-		logger:     Logger.WithField("connAddr", localAddr.String()),
+		logger:     Logger.WithField("connAddr", localAddr.String()).WithField("pkg", "conn"),
 		closed:     abool.New(),
 	}
 
@@ -82,6 +83,7 @@ func (c *Conn) Send(packet []byte) error {
 
 func (c *Conn) Close() {
 	c.closed.Set()
+	time.Sleep(10 * time.Millisecond)
 	err := c.conn.Close()
 	if err != nil {
 		c.logger.Panic(err)

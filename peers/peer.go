@@ -12,16 +12,13 @@ import (
 	"github.com/tevino/abool"
 )
 
-var TIMEOUT = time.Second
-var RESEND = 100 * time.Millisecond
-
 var Logger = utils.NewLogger()
 
 type Peer struct {
 	conn   *conn.Conn
 	outs   []chan []byte
 	times  map[byte]time.Time
-	last   []byte
+	past   []byte
 	id     byte
 	logger *logrus.Entry
 	closed *abool.AtomicBool
@@ -30,7 +27,7 @@ type Peer struct {
 func New(id byte) *Peer {
 	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
 	p := &Peer{
-		conn:   conn.New(localIp, config.HEARTBEAT_PORT, net.ParseIP("127.255.255.255"), config.HEARTBEAT_PORT),
+		conn:   conn.New(localIp, config.HEARTBEAT_PORT, config.BROADCAST_IP, config.HEARTBEAT_PORT),
 		times:  make(map[byte]time.Time, 1),
 		id:     id,
 		logger: Logger.WithField("pkg", "peers").WithField("id", id),
@@ -49,6 +46,7 @@ func (p *Peer) Subscribe(out chan []byte) {
 
 func (p *Peer) Close() {
 	p.closed.Set()
+	time.Sleep(10 * time.Millisecond)
 	p.conn.Close()
 }
 
@@ -71,7 +69,7 @@ func (p *Peer) listen() {
 
 	peers := make([]byte, 0)
 	for id, time_ := range p.times {
-		if time.Now().Sub(time_) < TIMEOUT {
+		if time.Now().Sub(time_) < config.TRNASMISSION_TIMEOUT {
 			if id == 0 {
 				p.logger.Panic()
 			}
@@ -79,12 +77,12 @@ func (p *Peer) listen() {
 		}
 	}
 
-	if !(utils.Subset(peers, p.last) && utils.Subset(p.last, peers)) {
-		p.logger.WithField("now", peers).WithField("past", p.last).Debug("Peers changed")
+	if !(utils.Subset(peers, p.past) && utils.Subset(p.past, peers)) {
+		p.logger.WithField("now", peers).WithField("past", p.past).Debug("Peers changed")
 		for _, out := range p.outs {
 			out <- append([]byte{}, peers...) // Go's way of deep copy ...
 		}
-		p.last = peers
+		p.past = peers
 	}
 }
 
@@ -98,6 +96,6 @@ func (p *Peer) sendForever() {
 	for p.closed.IsNotSet() {
 		p.conn.Send([]byte{p.id})
 		p.logger.Debug("Sent heartbeat")
-		time.Sleep(RESEND)
+		time.Sleep(config.RETRANSMIT_INTERVAL)
 	}
 }

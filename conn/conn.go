@@ -62,18 +62,22 @@ func (c *Conn) receiveForever() {
 	}
 }
 
-func (c *Conn) Send(packet []byte) error {
+func (c *Conn) SendTo(packet []byte, remoteAddr *net.UDPAddr) error {
 	if len(packet) > MAX_PACKET_SIZE {
 		return errors.New(fmt.Sprintf("packet size (%v) cannot exceed %v", len(packet), MAX_PACKET_SIZE))
 	}
 
-	n, err := c.conn.WriteToUDP(packet, c.remoteAddr)
+	n, err := c.conn.WriteToUDP(packet, remoteAddr)
 	if err == nil {
-		c.logger.WithField("to", c.remoteAddr.String()).WithField("size", n).Debug("Sent")
+		c.logger.WithField("to", remoteAddr.String()).WithField("size", n).Debug("Sent")
 	} else {
-		c.logger.WithField("to", c.remoteAddr.String()).WithField("size", n).Panic(err)
+		c.logger.WithField("to", remoteAddr.String()).WithField("size", n).Panic(err)
 	}
 	return err
+}
+
+func (c *Conn) Send(packet []byte) error {
+	return c.SendTo(packet, c.remoteAddr)
 }
 
 func (c *Conn) Close() {

@@ -24,7 +24,7 @@ func TestMocknet(t *testing.T) {
 
 	msg := []byte{1}
 
-	t.Run("No loss", func(t *testing.T) {
+	t.Run("Without packet loss", func(t *testing.T) {
 		conn.SendTo(msg, config.BROADCAST_IP, 2001)
 		timer := time.NewTimer(10 * time.Millisecond)
 		select {
@@ -35,7 +35,7 @@ func TestMocknet(t *testing.T) {
 		}
 	})
 
-	t.Run("With loss", func(t *testing.T) {
+	t.Run("With packet loss", func(t *testing.T) {
 		mocknet.SetLossPercentage(50) // 50 % chance of loss each way from mocknet, means 75 % total loss to and from the mocknet
 		for i := 0; i < 100; i++ {
 			conn.SendTo(msg, config.BROADCAST_IP, 2001)

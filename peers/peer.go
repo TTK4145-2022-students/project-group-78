@@ -3,44 +3,44 @@ package peers
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/conn"
 	"github.com/TTK4145-2022-students/project-group-78/utils"
+	"github.com/elliotchance/pie/pie"
 	"github.com/sirupsen/logrus"
 	"github.com/tevino/abool"
 )
 
-var Logger = utils.NewLogger()
+var Logger = utils.NewLogger("peer", "id")
 
 type Peer struct {
 	conn   *conn.Conn
-	outs   []chan []byte
-	times  map[byte]time.Time
-	past   []byte
-	id     byte
-	logger *logrus.Entry
+	id     int
 	closed *abool.AtomicBool
+
+	outs  []chan pie.Ints
+	times map[int]time.Time
+	peers pie.Ints
 }
 
-func New(id byte) *Peer {
-	localIp := net.ParseIP(fmt.Sprintf("127.0.0.%v", id))
+func New(id int) *Peer {
 	p := &Peer{
-		conn:   conn.New(localIp, config.HEARTBEAT_PORT, config.BROADCAST_IP, config.HEARTBEAT_PORT),
-		times:  make(map[byte]time.Time, 1),
+		conn:   conn.New(net.ParseIP(fmt.Sprintf("127.0.0.%v", id)), config.HEARTBEAT_PORT),
 		id:     id,
-		logger: Logger.WithField("pkg", "peers").WithField("id", id),
 		closed: abool.New(),
+		times:  make(map[int]time.Time, 1),
 	}
 
-	go p.sendForever()
-	go p.listenForever()
+	go p.send()
+	go p.listen()
 
 	return p
 }
 
-func (p *Peer) Subscribe(out chan []byte) {
+func (p *Peer) Subscribe(out chan pie.Ints) {
 	p.outs = append(p.outs, out)
 }
 
@@ -50,52 +50,55 @@ func (p *Peer) Close() {
 	p.conn.Close()
 }
 
-func (p *Peer) getHeartbeat() (byte, bool) {
+func (p *Peer) log() *logrus.Entry {
+	return Logger.WithField("id", p.id)
+}
+
+func (p *Peer) getHeartbeat() (int, bool) {
 	select {
 	case b := <-p.conn.Receive:
-		id := b[0]
-		p.logger.WithField("from", id).Debug("Received heartbeat")
-		return id, true
+		id, err := strconv.Atoi(string(b))
+		if err != nil {
+			p.log().Error(err)
+			return 0, false
+		} else {
+			p.log().WithField("from", id).Debug("received heartbeat")
+			return id, true
+		}
 	default:
 		return 0, false
 	}
 }
 
 func (p *Peer) listen() {
-	id, got := p.getHeartbeat()
-	if got {
-		p.times[id] = time.Now()
-	}
-
-	peers := make([]byte, 0)
-	for id, time_ := range p.times {
-		if time.Now().Sub(time_) < config.TRNASMISSION_TIMEOUT {
-			if id == 0 {
-				p.logger.Panic()
-			}
-			peers = append(peers, id)
-		}
-	}
-
-	if !(utils.Subset(peers, p.past) && utils.Subset(p.past, peers)) {
-		p.logger.WithField("now", peers).WithField("past", p.past).Debug("Peers changed")
-		for _, out := range p.outs {
-			out <- append([]byte{}, peers...) // Go's way of deep copy ...
-		}
-		p.past = peers
-	}
-}
-
-func (p *Peer) listenForever() {
-	for {
-		p.listen()
-	}
-}
-
-func (p *Peer) sendForever() {
 	for p.closed.IsNotSet() {
-		p.conn.Send([]byte{p.id})
-		p.logger.Debug("Sent heartbeat")
+		id, got := p.getHeartbeat()
+		if got {
+			p.times[id] = time.Now()
+		}
+
+		currentPeers := pie.Ints{}
+		for id, time_ := range p.times {
+			if time.Now().Sub(time_) < config.TRANSMISSION_TIMEOUT {
+				currentPeers = currentPeers.Append(id)
+			}
+		}
+
+		add, remove := currentPeers.Diff(p.peers)
+		if len(add) != 0 || len(remove) != 0 {
+			p.log().WithField("peers", currentPeers).Info("peers changed")
+			for _, out := range p.outs {
+				out <- currentPeers.Append() // Deep copy
+			}
+			p.peers = currentPeers
+		}
+	}
+}
+
+func (p *Peer) send() {
+	for p.closed.IsNotSet() {
+		p.conn.SendTo([]byte(string(fmt.Sprint(p.id))), config.BROADCAST_IP, config.HEARTBEAT_PORT)
+		p.log().Debug("sent heartbeat")
 		time.Sleep(config.RETRANSMIT_INTERVAL)
 	}
 }

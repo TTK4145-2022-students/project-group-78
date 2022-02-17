@@ -1,65 +1,62 @@
 package peers
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/mocknet"
-	"github.com/TTK4145-2022-students/project-group-78/utils"
-	"github.com/sirupsen/logrus"
+	"github.com/elliotchance/pie/pie"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	Logger.SetLevel(logrus.DebugLevel)
+	//Logger.SetLevel(logrus.DebugLevel)
+}
+
+func getPeerOrFail(ch chan pie.Ints) (pie.Ints, error) {
+	timer := time.NewTimer(config.TRANSMISSION_TIMEOUT)
+	select {
+	case p := <-ch:
+		return p, nil
+	case <-timer.C:
+		return pie.Ints{}, errors.New("timed out")
+	}
 }
 
 func TestPeer(t *testing.T) {
 	p1 := New(1)
 	p2 := New(2)
 	defer p1.Close()
-	defer p2.Close()
 
 	mocknet := mocknet.New(config.HEARTBEAT_PORT)
 	defer mocknet.Close()
 
-	peers := make(chan []byte, 10)
+	peers := make(chan pie.Ints, 10)
 	p1.Subscribe(peers)
 
-	time.Sleep(20 * time.Millisecond)
+	t.Run("Without packet loss", func(t *testing.T) {
+		p, err := getPeerOrFail(peers)
+		assert.Nil(t, err)
+		assert.True(t, p.Equals(pie.Ints{1}) || p.Equals(pie.Ints{2}))
 
-	var p []byte
-	for len(peers) != 0 {
-		select {
-		case p = <-peers:
-		default:
-		}
-	}
-	assert.True(t, utils.Subset(p, []byte{1, 2}) && utils.Subset([]byte{1, 2}, p))
-}
+		p, err = getPeerOrFail(peers)
+		assert.Nil(t, err)
+		assert.True(t, p.Equals(pie.Ints{1, 2}) || p.Equals(pie.Ints{2, 1}))
+	})
 
-func TestPeerWithPacketLoss(t *testing.T) {
-	p1 := New(1)
-	p2 := New(2)
-	defer p1.Close()
-	defer p2.Close()
+	t.Run("With packet loss", func(t *testing.T) {
+		mocknet.SetLossPercentage(50)
+		_, err := getPeerOrFail(peers)
+		assert.NotNil(t, err)
+	})
 
-	mocknet := mocknet.New(config.HEARTBEAT_PORT)
-	mocknet.LossPercentage <- 50
-	defer mocknet.Close()
-
-	peers := make(chan []byte, 10)
-	p1.Subscribe(peers)
-
-	time.Sleep(1000 * time.Millisecond)
-
-	var p []byte
-	for len(peers) != 0 {
-		select {
-		case p = <-peers:
-		default:
-		}
-	}
-	assert.True(t, utils.Subset(p, []byte{1, 2}) && utils.Subset([]byte{1, 2}, p))
+	t.Run("Drop peer", func(t *testing.T) {
+		p2.Close()
+		time.Sleep(config.TRANSMISSION_TIMEOUT)
+		p, err := getPeerOrFail(peers)
+		assert.Nil(t, err)
+		assert.True(t, p.Equals(pie.Ints{1}) || p.Equals(pie.Ints{2}))
+	})
 }

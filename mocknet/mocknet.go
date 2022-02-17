@@ -4,85 +4,70 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/conn"
 	"github.com/TTK4145-2022-students/project-group-78/utils"
 	"github.com/sirupsen/logrus"
-	"github.com/tevino/abool"
 )
 
-var Logger = utils.NewLogger("mocknet")
+var Logger = utils.NewLogger("mocknet", "port")
 
 type Mocknet struct {
-	LossPercentage chan int
-
 	conn           *conn.Conn
-	logger         *logrus.Entry
-	closed         *abool.AtomicBool
-	lossPercentage int
 	port           int
+	quit           chan bool
+	lossPercentage *int32
 }
 
 func New(port int) *Mocknet {
 	rand.Seed(0)
-	broadcastAddr := &net.UDPAddr{IP: config.BROADCAST_IP, Port: port}
 	p := &Mocknet{
-		LossPercentage: make(chan int, 1),
-		conn:           conn.New(config.BROADCAST_IP, port, nil, 0),
-		logger:         Logger.WithField("addr", broadcastAddr.String()).WithField("pkg", "mocknet"),
-		closed:         abool.New(),
+		conn:           conn.New(config.BROADCAST_IP, port),
 		port:           port,
+		quit:           make(chan bool),
+		lossPercentage: new(int32),
 	}
 
-	go p.runForever()
+	go p.run()
 
 	return p
 }
 
 func (m *Mocknet) Close() {
-	m.closed.Set()
+	m.quit <- true
 	time.Sleep(10 * time.Millisecond)
 	m.conn.Close()
 }
 
-func (m *Mocknet) getLosePercentage() int {
-	select {
-	case lossPercentage := <-m.LossPercentage:
-		if lossPercentage < 0 || lossPercentage > 100 {
-			m.logger.WithField("lossPercentage", lossPercentage).Panic("invalid loss percentage! Must be in interval [0, 100]")
-		} else {
-			m.lossPercentage = lossPercentage
-		}
-	default:
-	}
-	return m.lossPercentage
+func (m *Mocknet) SetLossPercentage(percentage int) {
+	atomic.StoreInt32(m.lossPercentage, int32(percentage))
+}
+
+func (m *Mocknet) log() *logrus.Entry {
+	return Logger.WithField("port", m.port)
 }
 
 func (m *Mocknet) shouldLose() bool {
-	return rand.Intn(100) <= m.getLosePercentage()
+	return rand.Intn(100) <= int(atomic.LoadInt32(m.lossPercentage))
 }
 
 func (m *Mocknet) run() {
-	select {
-	case msg := <-m.conn.Receive:
-		if m.shouldLose() {
+	for {
+		select {
+		case msg := <-m.conn.Receive:
+			if !m.shouldLose() {
+				for i := 1; i <= 255; i++ {
+					ip := net.ParseIP(fmt.Sprintf("127.0.0.%v", i))
+					if !m.shouldLose() {
+						m.conn.SendTo(msg, ip, m.port)
+					}
+				}
+			}
+		case <-m.quit:
 			return
 		}
-		for i := 0; i < 255 && m.closed.IsNotSet(); i++ {
-			addr := &net.UDPAddr{IP: net.ParseIP(fmt.Sprintf("127.0.0.%v", i)), Port: m.port}
-			if !m.shouldLose() {
-				m.conn.SendTo(msg, addr)
-			}
-
-		}
-	default:
-	}
-}
-
-func (m *Mocknet) runForever() {
-	for m.closed.IsNotSet() {
-		m.run()
 	}
 }

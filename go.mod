@@ -3,6 +3,7 @@ module github.com/TTK4145-2022-students/project-group-78
 go 1.17
 
 require (
+	github.com/elliotchance/pie v1.39.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/tevino/abool v1.2.0

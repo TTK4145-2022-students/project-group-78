@@ -12,46 +12,50 @@ import (
 )
 
 func init() {
-	Logger.Logger.SetLevel(logrus.DebugLevel)
+	Logger.SetLevel(logrus.DebugLevel)
 }
 
-func TestNoDrop(t *testing.T) {
-	port := 41875
-	conn := conn.New(net.ParseIP("127.0.0.1"), port, config.BROADCAST_IP, port)
+func TestMocknet(t *testing.T) {
+	ip := net.ParseIP("127.0.0.1")
+	conn := conn.New(ip, 2001)
+	mocknet := New(2001)
 	defer conn.Close()
-
-	mocknet := New(port)
 	defer mocknet.Close()
 
-	time.Sleep(10 * time.Microsecond)
+	msg := []byte{1}
 
-	val := []byte{1}
-	assert.Nil(t, conn.Send(val))
-	assert.Equal(t, <-conn.Receive, val)
-}
-
-func TestDrop(t *testing.T) {
-	port := 41875
-	conn := conn.New(net.ParseIP("127.0.0.1"), port, config.BROADCAST_IP, port)
-	defer conn.Close()
-
-	mocknet := New(port)
-	mocknet.LossPercentage <- 50
-	defer mocknet.Close()
-
-	val := []byte{1}
-	for i := 0; i < 100; i++ {
-		assert.Nil(t, conn.Send(val))
-	}
-
-	c := 0
-	start := time.Now()
-	for time.Now().Sub(start) < 500*time.Millisecond {
+	t.Run("No loss", func(t *testing.T) {
+		conn.SendTo(msg, config.BROADCAST_IP, 2001)
+		timer := time.NewTimer(10 * time.Millisecond)
 		select {
-		case <-conn.Receive:
-			c++
-		default:
+		case r := <-conn.Receive:
+			assert.Equal(t, msg, r)
+		case <-timer.C:
+			t.Error("timed out")
 		}
-	}
-	assert.False(t, c < 15 || c > 35)
+	})
+
+	t.Run("With loss", func(t *testing.T) {
+		mocknet.SetLossPercentage(50) // 50 % chance of loss each way from mocknet, means 75 % total loss to and from the mocknet
+		for i := 0; i < 100; i++ {
+			conn.SendTo(msg, config.BROADCAST_IP, 2001)
+		}
+
+		c := 0
+		timeout := 1000 * time.Millisecond
+		timer := time.NewTimer(timeout)
+		for {
+			select {
+			case <-conn.Receive:
+				c++
+				timer.Reset(timeout)
+
+			case <-timer.C:
+				if c < 15 || c > 35 {
+					t.Errorf("received %v messages, should have been around 25", c)
+				}
+				return
+			}
+		}
+	})
 }

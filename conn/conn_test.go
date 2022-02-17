@@ -3,38 +3,45 @@ package conn
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	Logger.Logger.SetLevel(logrus.DebugLevel)
+	Logger.SetLevel(logrus.DebugLevel)
 }
 
-func TestSingleConn(t *testing.T) {
+func TestConn(t *testing.T) {
 	ip := net.ParseIP("127.0.0.1")
-	port := 41875
-	conn := New(ip, port, ip, port)
-	defer conn.Close()
 
-	val := []byte{1}
-	assert.Nil(t, conn.Send(val))
-	assert.Equal(t, <-conn.Receive, val)
-}
-
-func TestDoubleConn(t *testing.T) {
-	ip := net.ParseIP("127.0.0.1")
-	conn := New(ip, 30001, ip, 30002)
-	conn2 := New(ip, 30002, ip, 30001)
+	conn := New(ip, 2001)
+	conn2 := New(ip, 2002)
 	defer conn.Close()
 	defer conn2.Close()
 
-	val := []byte{1}
-	val2 := []byte{2}
-	assert.Nil(t, conn.Send(val))
-	assert.Equal(t, <-conn2.Receive, val)
-	
-	assert.Nil(t, conn2.Send(val2))
-	assert.Equal(t, <-conn.Receive, val2)
+	msg := []byte{1}
+
+	t.Run("Sending to self", func(t *testing.T) {		
+		conn.SendTo(msg, ip, 2001)
+		timer := time.NewTimer(10 * time.Millisecond)
+		select {
+		case r := <-conn.Receive:
+			assert.Equal(t, msg, r)
+		case <-timer.C:
+			t.Error("timed out")
+		}
+	})
+
+	t.Run("Sending to other", func(t *testing.T) {
+		conn.SendTo(msg, ip, 2002)
+		timer := time.NewTimer(10 * time.Millisecond)
+		select {
+		case r := <-conn2.Receive:
+			assert.Equal(t, msg, r)
+		case <-timer.C:
+			t.Error("timed out")
+		}
+	})
 }

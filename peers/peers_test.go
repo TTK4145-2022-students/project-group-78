@@ -15,10 +15,10 @@ func init() {
 	//Logger.SetLevel(logrus.DebugLevel)
 }
 
-func getPeerOrFail(ch chan pie.Ints) (pie.Ints, error) {
+func getPeers(p *Peer) (pie.Ints, error) {
 	timer := time.NewTimer(config.TRANSMISSION_TIMEOUT)
 	select {
-	case p := <-ch:
+	case p := <-p.Peers:
 		return p, nil
 	case <-timer.C:
 		return pie.Ints{}, errors.New("timed out")
@@ -33,29 +33,26 @@ func TestPeer(t *testing.T) {
 	mocknet := mocknet.New(config.HEARTBEAT_PORT)
 	defer mocknet.Close()
 
-	peers := make(chan pie.Ints, 10)
-	p1.Subscribe(peers)
-
 	t.Run("Without packet loss", func(t *testing.T) {
-		p, err := getPeerOrFail(peers)
+		p, err := getPeers(p1)
 		assert.Nil(t, err)
 		assert.True(t, p.Equals(pie.Ints{1}) || p.Equals(pie.Ints{2}))
 
-		p, err = getPeerOrFail(peers)
+		p, err = getPeers(p1)
 		assert.Nil(t, err)
 		assert.True(t, p.Equals(pie.Ints{1, 2}) || p.Equals(pie.Ints{2, 1}))
 	})
 
 	t.Run("With packet loss", func(t *testing.T) {
 		mocknet.SetLossPercentage(50)
-		_, err := getPeerOrFail(peers)
+		_, err := getPeers(p1)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("Drop peer", func(t *testing.T) {
 		p2.Close()
 		time.Sleep(config.TRANSMISSION_TIMEOUT)
-		p, err := getPeerOrFail(peers)
+		p, err := getPeers(p1)
 		assert.Nil(t, err)
 		assert.True(t, p.Equals(pie.Ints{1}) || p.Equals(pie.Ints{2}))
 	})

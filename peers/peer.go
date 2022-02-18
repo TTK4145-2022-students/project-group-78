@@ -17,17 +17,18 @@ import (
 var Logger = utils.NewLogger("peer", "id")
 
 type Peer struct {
+	Peers chan pie.Ints
+
 	conn   *conn.Conn
 	id     int
 	closed *abool.AtomicBool
-
-	outs  []chan pie.Ints
-	times map[int]time.Time
-	peers pie.Ints
+	times  map[int]time.Time
+	peers  pie.Ints
 }
 
 func New(id int) *Peer {
 	p := &Peer{
+		Peers:  make(chan pie.Ints, 16),
 		conn:   conn.New(net.ParseIP(fmt.Sprintf("127.0.0.%v", id)), config.HEARTBEAT_PORT),
 		id:     id,
 		closed: abool.New(),
@@ -40,13 +41,9 @@ func New(id int) *Peer {
 	return p
 }
 
-func (p *Peer) Subscribe(out chan pie.Ints) {
-	p.outs = append(p.outs, out)
-}
-
 func (p *Peer) Close() {
 	p.closed.Set()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(time.Millisecond)
 	p.conn.Close()
 }
 
@@ -87,9 +84,7 @@ func (p *Peer) listen() {
 		add, remove := currentPeers.Diff(p.peers)
 		if len(add) != 0 || len(remove) != 0 {
 			p.log().WithField("peers", currentPeers).Info("peers changed")
-			for _, out := range p.outs {
-				out <- currentPeers.Append() // Deep copy
-			}
+			p.Peers <- currentPeers.Append() //Deep copy
 			p.peers = currentPeers
 		}
 	}

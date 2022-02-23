@@ -8,8 +8,6 @@ func init() {
 	gob.Register(OrderReceived{})
 	gob.Register(OrderServed{})
 	gob.Register(EnteredFloor{})
-	gob.Register(DoorObstructed{})
-	gob.Register(DoorUnobstructed{})
 }
 
 type DoorOpened struct{}
@@ -21,7 +19,3 @@ type OrderReceived struct{}
 type OrderServed struct{}
 
 type EnteredFloor struct{}
-
-type DoorObstructed struct{}
-
-type DoorUnobstructed struct{}

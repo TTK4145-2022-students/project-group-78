@@ -1,12 +1,10 @@
 package main
-import (
-	
-	"github.com/TTK4145-2022-students/project-group-78/controller"
-)
-
 
 import (
+	"time"
+
 	"github.com/TTK4145-2022-students/project-group-78/central"
+	"github.com/TTK4145-2022-students/project-group-78/controller"
 	"github.com/TTK4145-2022-students/project-group-78/distributor"
 )
 
@@ -25,6 +23,9 @@ func main() {
 			
 		case s := <-distributor.StateUpdate:
 			state.Merge(s)
+
+		default:
+			time.Sleep(10 * time.Millisecond)
 		}
 
 		distributor.Send(state)

@@ -18,9 +18,9 @@ type Transport struct {
 	Send    chan []byte
 	Receive chan []byte
 
-	id           byte
+	id           int
 	state        state
-	peers        []byte
+	peers        pie.Ints
 	ackConn      *conn.Conn
 	datagramConn *conn.Conn
 	seq          int
@@ -29,7 +29,7 @@ type Transport struct {
 
 	message       []byte
 	messageOrigin byte
-	messageAcks   []byte
+	messageAcks   pie.Ints
 	messageSent   time.Time
 
 	stash []byte
@@ -45,8 +45,8 @@ func New(id byte, peers []byte) *Transport {
 		id:           id,
 		state:        idle,
 		peers:        peers,
-		ackConn:      conn.New(localIp, config.ACK_PORT, config.BROADCAST_IP, config.ACK_PORT),
-		datagramConn: conn.New(localIp, config.DATAGRAM_PORT, config.BROADCAST_IP, config.DATAGRAM_PORT),
+		ackConn:      conn.New(localIp, config.ACK_PORT),
+		datagramConn: conn.New(localIp, config.DATAGRAM_PORT),
 		seq:          1,
 		logger:       Logger,
 		closed:       abool.New(),

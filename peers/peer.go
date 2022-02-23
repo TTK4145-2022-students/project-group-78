@@ -2,7 +2,6 @@ package peers
 
 import (
 	"fmt"
-	"net"
 	"strconv"
 	"time"
 
@@ -29,7 +28,7 @@ type Peer struct {
 func New(id int) *Peer {
 	p := &Peer{
 		Peers:  make(chan pie.Ints, 16),
-		conn:   conn.New(net.ParseIP(fmt.Sprintf("127.0.0.%v", id)), config.HEARTBEAT_PORT),
+		conn:   conn.New(config.LocalIp(id), config.HEARTBEAT_PORT),
 		id:     id,
 		closed: abool.New(),
 		times:  make(map[int]time.Time, 1),

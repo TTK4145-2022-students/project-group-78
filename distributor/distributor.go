@@ -14,18 +14,20 @@ import (
 var Logger = utils.NewLogger("distributor", "id")
 
 type Distributor struct {
-	id       byte
-	conn     *conn.Conn
-	stateOut chan central.NetworkState
-	stop     chan bool
+	StateUpdate chan central.CentralState
+
+	id   int
+	conn *conn.Conn
+	stop chan bool
 }
 
-func New(id byte, stateOut chan central.NetworkState) *Distributor {
+func New(id int) *Distributor {
 	d := &Distributor{
-		id:       id,
-		conn:     conn.New(config.LocalIp(id), config.PORT),
-		stateOut: make(chan central.NetworkState),
-		stop:     make(chan bool),
+		StateUpdate: make(chan central.CentralState),
+
+		id:   id,
+		conn: conn.New(config.LocalIp(id), config.PORT),
+		stop: make(chan bool),
 	}
 
 	go d.run()
@@ -40,8 +42,8 @@ func (d *Distributor) Stop() {
 	d.log().Info("stopped")
 }
 
-func (d *Distributor) Send(s central.NetworkState) {
-	b := d.serialize(s)
+func (d *Distributor) Send(c central.CentralState) {
+	b := d.serialize(c)
 	d.conn.SendTo(b, config.BROADCAST_IP, config.PORT)
 	d.log().Debug("sent")
 }
@@ -54,13 +56,13 @@ func (d *Distributor) run() {
 	for {
 		select {
 		case b := <-d.conn.Receive:
-			ns, err := parse(b)
+			s, err := parse(b)
 			if err != nil {
 				d.log().WithField("packet", b).Warn(err)
 			} else {
 				d.log().Debug("received")
 			}
-			d.stateOut <- ns
+			d.StateUpdate <- s
 
 		case <-d.stop:
 			return
@@ -68,12 +70,12 @@ func (d *Distributor) run() {
 	}
 }
 
-func parse(b []byte) (s central.NetworkState, err error) {
+func parse(b []byte) (s central.CentralState, err error) {
 	err = gob.NewDecoder(bytes.NewBuffer(b)).Decode(&s)
 	return
 }
 
-func (d *Distributor) serialize(s central.NetworkState) []byte {
+func (d *Distributor) serialize(s central.CentralState) []byte {
 	var buf bytes.Buffer
 	err := gob.NewEncoder(&buf).Encode(s)
 	if err != nil {

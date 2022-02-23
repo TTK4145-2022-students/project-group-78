@@ -6,20 +6,24 @@ import (
 )
 
 func main() {
-	var id byte = 1
+	var id int = 1
 
-	central := central.New()
-	defer central.Stop()
+	state := central.NewCentralState()
 
-	elevator := elevator.New(id, central.StateIn)
-	distributor := distributor.New(id, central.StateIn)
+	elevator := elevator.New(id)
+	distributor := distributor.New(id)
 
 	for {
 		select {
-		case s := <-central.StateOut:
-			distributor.Send(s)
-			elevator.Lights <- orders.SetOrderBoard(s)
-			elevator.TargetOrder <- orders.CalculateOrder(s)
+		case s := <-elevator.StateUpdate:
+			state.Merge(s)
+			
+		case s := <-distributor.StateUpdate:
+			state.Merge(s)
 		}
+
+		distributor.Send(state)
+		elevator.Lights <- orders.SetOrderBoard(state)
+		elevator.TargetOrder <- orders.CalculateOrder(state)
 	}
 }

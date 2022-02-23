@@ -4,32 +4,29 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TTK4145-2022-students/project-group-78/elevator"
+	"github.com/TTK4145-2022-students/project-group-78/events"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCentral(t *testing.T) {
-	c := New()
+func TestCentralState(t *testing.T) {
+	cs := NewCentralState()
 
-	time_ := time.Time{}
-	event := elevator.DoorOpened{}
-	in := NetworkState{
-		1: ElevatorState{
-			event: time_,
-		}}
-	c.StateIn <- in
+	id := 1
+	event := events.DoorOpened{}
 
 	t.Run("Initial event", func(t *testing.T) {
-		out := <-c.StateOut
-		assert.Equal(t, out[1][event], time_)
+		ncs := NewCentralState()
+		time_ := time.Now()
+		ncs[id][event] = time_
+		cs.Merge(ncs)
+		assert.Equal(t, cs[id][event], time_)
 	})
 
 	t.Run("Updating event", func(t *testing.T) {
+		ncs := NewCentralState()
 		time_ := time.Now()
-		in[1][event] = time_
-		c.StateIn <- in
-
-		out := <-c.StateOut
-		assert.Equal(t, out[1][event], time_)
+		ncs[id][event] = time_
+		cs.Merge(ncs)
+		assert.Equal(t, cs[id][event], time_)
 	})
 }

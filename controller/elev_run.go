@@ -25,12 +25,11 @@ type LocalElevator struct{
 	state State;
 }
 
-
-
 func target_reached(){
 	SetMotorDirection(MD_Stop);
 	go door_open()
 }
+
 func start_motor_towards_target(){
 	if (elev.state != DoorOpen){
 		if (elev.current_floor == target) {
@@ -53,34 +52,31 @@ func start_motor_towards_target(){
 	}
 }
 
-
 func door_open(){
 	elev.state = DoorOpen
 	SetDoorOpenLamp(true)
 	timer := time.NewTimer(3*time.Second)
 	<-timer.C
-	if elev.new_target{
+	if (elev.new_target){
 		elev.state = AtRest
 		start_motor_towards_target(target)
-		elev.state = Moving
-	}
-	else{
+		elev.state = Moving 
+	}else{
 		elev.state = AtRest
 	}
-	
 	SetDoorOpenLamp(false)
-	
 }
+
 func Run_elevator(){
 	elev = LocalElevator{-1,-1, Neutral, MD_Stop, AtRest};
-	addr = "11111"
-	numFloors = 5
+	addr = "15657"
+	numFloors = 2
 
 	Init(addr, numFloors);
 
 	for {
 		event = EM_listen_for_event()
-		if (event){
+		if event{
 			switch event.type{
 				case floorSensorTriggered:
 					elev.current_floor = event.floor
@@ -96,8 +92,6 @@ func Run_elevator(){
 							elev.relative_position = Neutral
 						default:
 					}
-					
-
 				case newTarget:
 					elev.new_target = true
 					elev.target = event.target

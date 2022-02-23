@@ -31,4 +31,5 @@ func main() {
 		elevator.Lights <- orders.SetOrderBoard(state)
 		elevator.TargetOrder <- orders.CalculateOrder(state)
 	}
+	go Run_elevator
 }

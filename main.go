@@ -1,9 +1,12 @@
 package main
 
-import "github.com/TTK4145-2022-students/project-group-78/central"
+import (
+	"github.com/TTK4145-2022-students/project-group-78/central"
+	"github.com/TTK4145-2022-students/project-group-78/distributor"
+)
 
 func main() {
-	id := 1
+	var id byte = 1
 
 	central := central.New()
 	defer central.Stop()
@@ -13,10 +16,10 @@ func main() {
 
 	for {
 		select {
-		case state := <-central.StateOut:
-			distributor.StateIn <- state
-			elevator.Lights <- orders.SetOrderBoard(state)
-			elevator.TargetOrder <- orders.CalculateOrder(state)			
+		case s := <-central.StateOut:
+			distributor.Send(s)
+			elevator.Lights <- orders.SetOrderBoard(s)
+			elevator.TargetOrder <- orders.CalculateOrder(s)
 		}
 	}
 }

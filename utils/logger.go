@@ -16,17 +16,17 @@ func NewLogger(pkg string, fieldOrder ...string) *logrus.Logger {
 		TimestampFormat: "15:04:05",
 		SortingFunc: func(ks []string) {
 			// Place ordered fields first, and then sort the rest alphabetically
-			fieldOrder := pie.Strings(fieldOrder)
+			fo := pie.Strings(fieldOrder)
 			keys := pie.Strings(ks).Sort()
 			i := 0
-			for _, key := range fieldOrder {
+			for _, key := range fo {
 				if keys.Contains(key) {
 					ks[i] = key
 					i++
 				}
 			}
 			for _, key := range keys {
-				if !fieldOrder.Contains(key) {
+				if !fo.Contains(key) {
 					ks[i] = key
 					i++
 				}

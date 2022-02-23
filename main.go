@@ -1,4 +1,9 @@
 package main
+import (
+	
+	"github.com/TTK4145-2022-students/project-group-78/controller"
+)
+
 
 import (
 	"github.com/TTK4145-2022-students/project-group-78/central"

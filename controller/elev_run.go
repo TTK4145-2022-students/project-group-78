@@ -1,3 +1,5 @@
+package controller
+
 import "Driver-go/elevio"
 
 
@@ -25,16 +27,17 @@ type LocalElevator struct{
 
 elev = LocalElevator{-1,-1, Neutral, MD_Stop, AtRest};
 
-func run_elevator(){
-	addr = "11111"
-	numFloors = 5
-	Init(addr, numFloors);
-
 func target_reached(){
 	SetMotorDirection(MD_Stop);
 	go door_open()
-	
 }
+
+func Run_elevator(){
+	addr = "11111"
+	numFloors = 5
+
+	Init(addr, numFloors);
+
 	for {
 		event = EM_listen_for_event()
 		if (event){
@@ -56,6 +59,7 @@ func target_reached(){
 					
 
 				case newTarget:
+					elev.new_target = true
 					elev.target = event.target
 					start_motor_towards_target(elev.target)
 

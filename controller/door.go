@@ -9,6 +9,8 @@ func door_open(){
 	timer := time.NewTimer(3*time.Second)
 	<-timer.C
 	if elev.new_target{
+		elev.state = AtRest
+		start_motor_towards_target(target)
 		elev.state = Moving
 	}
 	else{

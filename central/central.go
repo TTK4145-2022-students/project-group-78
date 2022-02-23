@@ -13,8 +13,8 @@ func New() *Central {
 		StateIn:  make(chan NetworkState),
 		StateOut: make(chan NetworkState),
 
-		state: make(NetworkState),
-		stop: make(chan bool),
+		state: MakeNetworkState(),
+		stop:  make(chan bool),
 	}
 
 	go c.run()
@@ -30,7 +30,7 @@ func (c *Central) run() {
 	for {
 		select {
 		case s := <-c.StateIn:
-			mergeNetworkState(c.state, s)
+			c.mergeNetworkState(s)
 			c.StateOut <- c.state
 		case <-c.stop:
 			return
@@ -38,18 +38,13 @@ func (c *Central) run() {
 	}
 }
 
-// Merge s2 into s
-func mergeNetworkState(s1 NetworkState, s2 NetworkState) {
-	for id, es := range s2 {
-		mergeElevatorState(s1[id], es)
-	}
-}
-
-// Merge es2 into es
-func mergeElevatorState(es ElevatorState, es2 ElevatorState) {
-	for event, time := range es2 {
-		if time.After(es[event]) {
-			es[event] = time
+// Merge s into c.state
+func (c *Central) mergeNetworkState(s NetworkState) {
+	for id, es := range s {
+		for event, time := range es {
+			if time.After(c.state[id][event]) {
+				c.state[id][event] = time
+			}
 		}
 	}
 }

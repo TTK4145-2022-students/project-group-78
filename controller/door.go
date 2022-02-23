@@ -4,10 +4,17 @@ import (
 )
 
 func door_open(){
-	local_state.doorOpen =true
+	elev.state = DoorOpen
 	SetDoorOpenLamp(true)
 	timer := time.NewTimer(3*time.Second)
 	<-timer.C
-	local_state.doorOpen = false
+	if elev.new_target{
+		elev.state = Moving
+	}
+	else{
+		elev.state = AtRest
+	}
+	
 	SetDoorOpenLamp(false)
+	
 }

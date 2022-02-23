@@ -8,45 +8,56 @@ const (
 	Neutral  
 	Below 
 )
+type state int
 
-type LocalState struct{
+const (
+	Moving state = iota
+	DoorOpen  
+	AtRest 
+)
+type LocalElevator struct{
 	target int;
 	current_floor int;
 	relative_position relative_position;
-	doorOpen bool;
 	motor_dir MotorDirection;
+	state State;
 }
 
-local_state = LocalState{-1,-1, Neutral, false, MD_Stop};
+elev = LocalElevator{-1,-1, Neutral, MD_Stop, AtRest};
 
 func run_elevator(){
 	addr = "11111"
 	numFloors = 5
 	Init(addr, numFloors);
 
+func target_reached(){
+	SetMotorDirection(MD_Stop);
+	go door_open()
+	
+}
 	for {
+		event = EM_listen_for_event()
 		if (event){
 			switch event.type{
-
 				case floorSensorTriggered:
-					current_floor == event.floor
+					elev.current_floor = event.floor
 					if current_floor == target{
-						elevator_finished_order();
-						go door_open();
+						target_reached()
 					}
-					switch local_state.motor_dir{
+					switch elev.motor_dir{
 						case MD_Up:
-							local_state.relative_position = Above;
+							elev.relative_position = Above
 						case MD_Down:
-							local_state.relative_position = Below;
+							elev.relative_position = Below
 						case MD_Stop:
-							local_state.relative_position = Neutral;
+							elev.relative_position = Neutral
 						default:
 					}
+					
 
 				case newTarget:
-					start_motor_towards_target(event.target)
-					local_state.target = event.target
+					elev.target = event.target
+					start_motor_towards_target(elev.target)
 
 				default:
 			}

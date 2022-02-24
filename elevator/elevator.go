@@ -1,30 +1,74 @@
 package elevator
 
-import "github.com/TTK4145-2022-students/project-group-78/elevio"
+import (
+	"fmt"
+	"time"
 
-type Elevator struct {
-	button      chan elevio.ButtonEvent
-	floor       chan int
-	obstruction chan bool
+	"github.com/TTK4145-2022-students/project-group-78/central"
+	"github.com/TTK4145-2022-students/project-group-78/config"
+	"github.com/TTK4145-2022-students/project-group-78/elevio"
+	"github.com/TTK4145-2022-students/project-group-78/events"
+	"github.com/TTK4145-2022-students/project-group-78/order"
+)
+
+var StateUpdate chan central.CentralState
+var SetTargetOrder chan order.Order
+var SetOrderLight chan struct {
+	order.Order
+	bool
 }
 
-func New() *Elevator {
-	elevio.Init()
+var id int
+var buttonPressedC chan elevio.ButtonEvent
+var floorEnteredC chan int
+var doorObstructionC chan bool
+var doorTimer *time.Timer
 
-	go e.run()
+func Init(id_ int, port int) {
+	id = id_
+	elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.NUM_FLOORS)
 
-	return &Elevator{}
+	go elevio.PollButtons(buttonPressedC)
+	go elevio.PollFloorSensor(floorEnteredC)
+	go elevio.PollObstructionSwitch(doorObstructionC)
+
+	doorTimer = time.NewTimer(time.Hour)
+	doorTimer.Stop()
+
+	go run()
 }
 
-func (e *Elevator) run() {
+var obstructed bool
+
+func run() {
 	for {
 		select {
-		case button := <-e.button:
-			e.handleButton(button)
+		case be := <-buttonPressedC:
+			order := order.Order{
+				Floor:     be.Floor,
+				OrderType: order.OrderType(be.Button),
+			}
+			emit(events.OrderReceived{order})
 
-		case floor := <-e.floor:
-			e.handleFloorSensor(floor)
+		case f := <-floorEnteredC:
+			floorEntered(f)
+
+		case obstructed = <-doorObstructionC:
+
+		case <-doorTimer.C:
+			doorTimedOut()
+
+		case o := <-SetTargetOrder:
+			targetOrderUpdated(o)
+
+		case l := <-SetOrderLight:
+			order, value := l.Order, l.bool
+			elevio.SetButtonLamp(elevio.ButtonType(order.OrderType), order.Floor, value)
 		}
 	}
 }
 
+// Creates a new CentralState sends it out on StateUpdate
+func emit(e central.Event) {
+
+}

@@ -15,8 +15,15 @@ type Order struct {
 	OrderType OrderType
 }
 
-func CalculateOrderLights(c central.CentralState) struct {
-	Order
-	bool
-}                                                       {}
-func CalculateTargetOrder(c central.CentralState) Order {}
+type OrderLight struct {
+	Order Order
+	Value bool
+}
+
+func CalculateOrderLights(c central.CentralState) []OrderLight {
+	return []OrderLight{}
+}
+
+func CalculateTargetOrder(c central.CentralState) Order {
+	return Order{}
+}

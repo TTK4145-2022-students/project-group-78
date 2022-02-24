@@ -13,10 +13,7 @@ import (
 
 var StateUpdate chan central.CentralState
 var SetTargetOrder chan order.Order
-var SetOrderLight chan struct {
-	order.Order
-	bool
-}
+var SetOrderLight chan []order.OrderLight
 
 var id int
 var buttonPressedC chan elevio.ButtonEvent
@@ -48,7 +45,7 @@ func run() {
 				Floor:     be.Floor,
 				OrderType: order.OrderType(be.Button),
 			}
-			emit(events.OrderReceived{order})
+			emit(events.OrderReceived{Order: order})
 
 		case f := <-floorEnteredC:
 			floorEntered(f)
@@ -61,14 +58,18 @@ func run() {
 		case o := <-SetTargetOrder:
 			targetOrderUpdated(o)
 
-		case l := <-SetOrderLight:
-			order, value := l.Order, l.bool
-			elevio.SetButtonLamp(elevio.ButtonType(order.OrderType), order.Floor, value)
+		case orderLights := <-SetOrderLight:
+			for _, orderLight := range orderLights {
+				order := orderLight.Order
+				elevio.SetButtonLamp(elevio.ButtonType(order.OrderType), order.Floor, orderLight.Value)
+			}
 		}
 	}
 }
 
 // Creates a new CentralState sends it out on StateUpdate
 func emit(e central.Event) {
-
+	cs := central.NewCentralState()
+	cs[id][e] = time.Now()
+	StateUpdate <- cs
 }

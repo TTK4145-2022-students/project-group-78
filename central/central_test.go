@@ -4,15 +4,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TTK4145-2022-students/project-group-78/events"
 	"github.com/stretchr/testify/assert"
 )
+
+type MockEvent struct{}
 
 func TestCentralState(t *testing.T) {
 	cs := NewCentralState()
 
 	id := 1
-	event := events.DoorOpened{}
+	event := MockEvent{}
 
 	t.Run("Initial event", func(t *testing.T) {
 		ncs := NewCentralState()

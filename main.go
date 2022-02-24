@@ -5,9 +5,10 @@ import (
 	"os"
 	"time"
 
+	"Network-go/network/bcast"
+
 	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
-	"github.com/TTK4145-2022-students/project-group-78/network/bcast"
 	"github.com/TTK4145-2022-students/project-group-78/order"
 	"github.com/akamensky/argparse"
 )

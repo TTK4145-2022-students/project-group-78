@@ -1,102 +1,109 @@
 package elevator
 
 import (
+	"log"
 	"time"
 
+	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
 
-type relativePosition int
-
-const (
-	Above relativePositon = iota
-	Neutral
-	Below
-)
-
-type State int
-
-const (
-	DoorOpen State = iota
-	Moving
-	Idle
-)
-
-var currentFloor int = -1
-var target int = -1
-var relativePosition relativePosition = Below
-var motorDirection MotorDirection = MD_Up
-var state = Moving
-var newTarget bool = false
-
-var es = ElevatorState{State: Moving, Direction: elevio.MD_Up, Floor: -1}
-
-func targetReached(doorTimer *time.Timer) {
-	SetMotorDirection(MD_Stop)
-	SetDoorOpenLamp(true)
-	doorTimer = time.NewTimer(time.Second * 3)
+func buttonPressed(be elevio.ButtonEvent, es ElevatorState) CentralState {
+	if be.Button == elevio.BT_Cab {
+		es.CabOrders[be.Floor] = true
+		return NewCentralState(id, es)
+	} else {
+		cs := NewCentralState(id, es)
+		o := Order{
+			Type:  be.Button,
+			Floor: be.Floor,
+		}
+		cs.HallOrders[o] = time.Now()
+		return cs
+	}
 }
 
-func startMotorTowardsTarget(doorTimer *time.Timer) {
-	if currentFloor == target {
-		switch relativePosition {
-		case Above:
-			setMotorDirection(MD_Down)
+func floorEntered(f int, es ElevatorState, doorTimer *time.Timer) CentralState {
+	if f == es.Target.Floor {
+		return targetReached(es, doorTimer)
+	} else {
+		es.RelativePosition = RelativePosition(es.Direction)
+		return NewCentralState(id, es)
+	}
+}
 
-		case Neutral:
-			State = DoorOpen
-			targetReached(&doorTimer)
+func closeDoor(es ElevatorState) ElevatorState {
+	es.State = Idle
+	elevio.SetDoorOpenLamp(false)
+	return es
+}
+
+func targetOrderUpdated(es ElevatorState, doorTimer *time.Timer) CentralState {
+	switch es.State {
+	case Idle:
+		if es.Target.Floor == es.Floor {
+			return targetReached(es, doorTimer)
+		} else {
+			return NewCentralState(id, startMotorTowardsTarget(es))
+		}
+
+	case Moving:
+		return NewCentralState(id, startMotorTowardsTarget(es))
+
+	case DoorOpen:
+		if es.Target.Floor == es.Floor {
+			return targetReached(es, doorTimer)
+		} else {
+			return NewCentralState(id, es)
+		}
+
+	default:
+		log.Panicf("Invalid state %v", es.State)
+		return CentralState{}
+	}
+}
+
+func targetReached(es ElevatorState, doorTimer *time.Timer) CentralState {
+	elevio.SetMotorDirection(elevio.MD_Stop)
+	elevio.SetDoorOpenLamp(true)
+	doorTimer = time.NewTimer(config.DOOR_OPEN_TIME)
+	es.Direction = elevio.MD_Stop
+	es.State = DoorOpen
+
+	if es.Target.Type == elevio.BT_Cab {
+		es.CabOrders[es.Target.Floor] = false
+		return NewCentralState(id, es)
+	} else {
+		cs := NewCentralState(id, es)
+		cs.ServedHallOrders[es.Target] = time.Now()
+		return cs
+	}
+}
+
+func startMotorTowardsTarget(es ElevatorState) ElevatorState {
+	if es.Target.Floor == es.Floor {
+		switch es.RelativePosition {
+		case Above:
+			elevio.SetMotorDirection(elevio.MD_Down)
+			es.Direction = elevio.MD_Down
+
+		case AtFloor:
+			log.Panic("Tried to start motor while at target")
 
 		case Below:
-			SetMotorDirection(MD_Up)
+			elevio.SetMotorDirection(elevio.MD_Up)
+			es.Direction = elevio.MD_Up
 		}
 
-	} else if currentFloor < target {
-		SetMotorDirection(MD_Up)
+	} else if es.Floor < es.Target.Floor {
+		elevio.SetMotorDirection(elevio.MD_Up)
+		es.Direction = elevio.MD_Up
 
 	} else {
-		SetMotorDirection(MD_Down)
+		elevio.SetMotorDirection(elevio.MD_Down)
+		es.Direction = elevio.MD_Down
 
 	}
-	newTarget = false
-}
-
-func floorEntered(f int, doorTimer *time.Timer) State {
-	currentFloor = f
-	if currentFloor == target {
-		State = DoorOpen
-		targetReached(&doorTimer)
-	}
-	switch motorDirection {
-	case MD_Up:
-		relativePosition = Above
-	case MD_Down:
-		relativePosition = Below
-	case MD_Stop:
-		relativePosition = Neutral
-	default:
-	}
-}
-
-func closeDoor() {
-	if (newTarget){
-		state = Moving 
-		startMotorTowardsTarget(&doorTimer)
-	} else {
-		State = Idle
-	}
-	SetDoorOpenLamp(false)
-}
-
-func targetOrderUpdated(o order.Order) {
-	newTarget = true
-	target = o
-	if State != DoorOpen {
-		if target == currentFloor && relativePosition == Neutral {
-			State = DoorOpen
-			targetReached()
-		} else {
-			startMotorTowardsTarget()
-		}
-	}
+	es.State = Moving
+	return es
 }

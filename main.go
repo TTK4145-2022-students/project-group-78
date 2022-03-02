@@ -7,7 +7,6 @@ import (
 
 	"Network-go/network/bcast"
 
-	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/akamensky/argparse"
 )
@@ -24,10 +23,10 @@ func main() {
 	}
 
 	//
-	state := elevator.NewCentralState()
+	state := elevator.NewCentralState(id, elevator.ElevatorState{})
 	elevator.Init(id, elevatorPort)
 
-	bcastReceive, bcastSend := make(chan central.CentralState), make(chan central.CentralState)
+	bcastReceive, bcastSend := make(chan elevator.CentralState), make(chan elevator.CentralState)
 	go bcast.Receiver(bcastPort, bcastReceive)
 	go bcast.Transmitter(bcastPort, bcastSend)
 
@@ -35,17 +34,34 @@ func main() {
 		timer := time.NewTimer(10 * time.Millisecond)
 		select {
 		case s := <-elevator.StateOut:
-			state.Merge(s)
+			merge(state, s)
 			bcastSend <- state
 			//delay to ensure that package are sent before turning on lights etc...
 			elevator.StateIn <- state
 
 		case s := <-bcastReceive:
-			state.Merge(s)
+			merge(state, s)
 			elevator.StateIn <- state
 
 		case <-timer.C:
 			bcastSend <- state
+		}
+	}
+}
+
+// Merge cs2 onto cs1
+func merge(cs1 elevator.CentralState, cs2 elevator.CentralState) {
+	cs1.Elevators[cs2.Origin] = cs2.Elevators[cs2.Origin]
+
+	for o := range cs2.HallOrders {
+		if cs2.HallOrders[o].After(cs1.HallOrders[o]) {
+			cs1.HallOrders[o] = cs2.HallOrders[o]
+		}
+	}
+
+	for o := range cs2.ServedHallOrders {
+		if cs2.ServedHallOrders[o].After(cs1.ServedHallOrders[o]) {
+			cs1.ServedHallOrders[o] = cs2.ServedHallOrders[o]
 		}
 	}
 }

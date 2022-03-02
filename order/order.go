@@ -24,6 +24,6 @@ func CalculateOrderLights(c central.CentralState) []OrderLight {
 	return []OrderLight{}
 }
 
-func CalculateTargetOrder(c central.CentralState) Order {
-	return Order{}
+func CalculateTargetOrder(c central.CentralState) (o Order, notEmpty bool) {
+	return Order{}, true
 }

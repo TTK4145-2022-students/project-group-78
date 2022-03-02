@@ -11,7 +11,8 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/order"
 )
 
-var StateUpdate chan central.CentralState
+var StateOut chan central.CentralState
+var StateIn chan central.CentralState
 var SetTargetOrder chan order.Order
 var SetOrderLight chan []order.OrderLight
 
@@ -71,5 +72,5 @@ func run() {
 func emit(e central.Event) {
 	cs := central.NewCentralState()
 	cs[id][e] = time.Now()
-	StateUpdate <- cs
+	StateOut <- cs
 }

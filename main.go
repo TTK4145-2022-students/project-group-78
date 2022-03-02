@@ -24,28 +24,28 @@ func main() {
 	}
 
 	//
-	state := central.NewCentralState()
+	state := elevator.NewCentralState()
 	elevator.Init(id, elevatorPort)
 
-	stateIn, stateOut := make(chan central.CentralState), make(chan central.CentralState)
-	go bcast.Receiver(bcastPort, stateIn)
-	go bcast.Transmitter(bcastPort, stateOut)
+	bcastReceive, bcastSend := make(chan central.CentralState), make(chan central.CentralState)
+	go bcast.Receiver(bcastPort, bcastReceive)
+	go bcast.Transmitter(bcastPort, bcastSend)
 
 	for {
 		timer := time.NewTimer(10 * time.Millisecond)
 		select {
 		case s := <-elevator.StateOut:
 			state.Merge(s)
-			stateOut <- state
+			bcastSend <- state
 			//delay to ensure that package are sent before turning on lights etc...
 			elevator.StateIn <- state
 
-		case s := <-stateIn:
+		case s := <-bcastReceive:
 			state.Merge(s)
 			elevator.StateIn <- state
 
 		case <-timer.C:
-			stateOut <- state
+			bcastSend <- state
 		}
 	}
 }

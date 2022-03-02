@@ -1,29 +1,10 @@
 package order
 
-import "github.com/TTK4145-2022-students/project-group-78/central"
-
-type OrderType int
-
-const (
-	HallUp OrderType = iota
-	HallDown
-	Cab
+import (
+	"github.com/TTK4145-2022-students/project-group-78/central"
+	"github.com/TTK4145-2022-students/project-group-78/elevator"
 )
 
-type Order struct {
-	Floor     int
-	OrderType OrderType
-}
-
-type OrderLight struct {
-	Order Order
-	Value bool
-}
-
-func CalculateOrderLights(c central.CentralState) []OrderLight {
-	return []OrderLight{}
-}
-
-func CalculateTargetOrder(c central.CentralState) (o Order, notEmpty bool) {
-	return Order{}, true
+func CalculateTargetOrder(c central.CentralState) (o elevator.Order, notEmpty bool) {
+	return elevator.Order{}, true
 }

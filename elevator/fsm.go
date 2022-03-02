@@ -1,20 +1,27 @@
 package elevator
 
 import (
-	"github.com/TTK4145-2022-students/project-group-78/order"
+	"time"
+
+	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
+
 type relativePosition int
+
 const (
 	Above relativePositon = iota
 	Neutral
 	Below
 )
-type state int
+
+type State int
+
 const (
-	DoorOpen state= iota
+	DoorOpen State = iota
 	Moving
 	Idle
 )
+
 var currentFloor int = -1
 var target int = -1
 var relativePosition relativePosition = Below
@@ -22,59 +29,61 @@ var motorDirection MotorDirection = MD_Up
 var state = Moving
 var newTarget bool = false
 
-func targetReached(doorTimer *time.Timer){
+var es = ElevatorState{State: Moving, Direction: elevio.MD_Up, Floor: -1}
+
+func targetReached(doorTimer *time.Timer) {
 	SetMotorDirection(MD_Stop)
 	SetDoorOpenLamp(true)
-	doorTimer = time.NewTimer(time.Second*3)
+	doorTimer = time.NewTimer(time.Second * 3)
 }
 
-func startMotorTowardsTarget(doorTimer *time.Timer){
-	if (currentFloor == target) {
-		switch relativePosition{
-			case Above:
-				setMotorDirection(MD_Down);
+func startMotorTowardsTarget(doorTimer *time.Timer) {
+	if currentFloor == target {
+		switch relativePosition {
+		case Above:
+			setMotorDirection(MD_Down)
 
-			case Neutral:
-				state = DoorOpen
-				targetReached(&doorTimer)
+		case Neutral:
+			State = DoorOpen
+			targetReached(&doorTimer)
 
-			case Below:
-				SetMotorDirection(MD_Up);
+		case Below:
+			SetMotorDirection(MD_Up)
 		}
 
-	}else if (currentFloor < target) {
-		SetMotorDirection(MD_Up);
+	} else if currentFloor < target {
+		SetMotorDirection(MD_Up)
 
-	}else {
-		SetMotorDirection(MD_Down);
+	} else {
+		SetMotorDirection(MD_Down)
 
 	}
 	newTarget = false
 }
 
-func floorEntered(f int,doorTimer *time.Timer) { 
+func floorEntered(f int, doorTimer *time.Timer) State {
 	currentFloor = f
-	if currentFloor == target{
-		state = DoorOpen
+	if currentFloor == target {
+		State = DoorOpen
 		targetReached(&doorTimer)
 	}
-	switch motorDirection{
-		case MD_Up:
-			relativePosition = Above
-		case MD_Down:
-			relativePosition = Below
-		case MD_Stop:
-			relativePosition = Neutral
-		default:
+	switch motorDirection {
+	case MD_Up:
+		relativePosition = Above
+	case MD_Down:
+		relativePosition = Below
+	case MD_Stop:
+		relativePosition = Neutral
+	default:
 	}
 }
 
 func doorTimedOut() {
-	if (newTarget){
-		state = Moving 
+	if newTarget { // TODO: Calculate new target instead
+		State = Moving
 		startMotorTowardsTarget(&doorTimer)
-	}else{
-		state = Idle
+	} else {
+		State = Idle
 	}
 	SetDoorOpenLamp(false)
 }
@@ -82,13 +91,12 @@ func doorTimedOut() {
 func targetOrderUpdated(o order.Order) {
 	newTarget = true
 	target = o
-	if state != DoorOpen{
-		if target == currentFloor && relativePosition == Neutral{
-			state = DoorOpen
+	if State != DoorOpen {
+		if target == currentFloor && relativePosition == Neutral {
+			State = DoorOpen
 			targetReached()
-		}else{
+		} else {
 			startMotorTowardsTarget()
 		}
 	}
 }
-

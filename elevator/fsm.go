@@ -69,7 +69,7 @@ func floorEntered(f int,doorTimer *time.Timer) {
 	}
 }
 
-func doorTimedOut() {
+func closeDoor() {
 	if (newTarget){
 		state = Moving 
 		startMotorTowardsTarget(&doorTimer)

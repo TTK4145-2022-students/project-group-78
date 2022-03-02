@@ -9,13 +9,12 @@ import (
 
 	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
-	"github.com/TTK4145-2022-students/project-group-78/order"
 	"github.com/akamensky/argparse"
 )
 
 func main() {
 	parser := argparse.NewParser("lifty", "lifty.")
-	id := *parser.Int("i", "id", &argparse.Options{Default: 1})
+	id := *parser.Int("i", "id", &argparse.Options{Default: 0})
 	bcastPort := *parser.Int("b", "broadcast-port", &argparse.Options{Default: 46952})
 	elevatorPort := *parser.Int("e", "elevator-port", &argparse.Options{Default: 15657})
 
@@ -33,18 +32,17 @@ func main() {
 	go bcast.Transmitter(bcastPort, stateOut)
 
 	for {
-		timer := time.NewTimer(100 * time.Millisecond)
+		timer := time.NewTimer(10 * time.Millisecond)
 		select {
-		case s := <-elevator.StateUpdate:
+		case s := <-elevator.StateOut:
 			state.Merge(s)
 			stateOut <- state
-			elevator.SetOrderLight <- order.CalculateOrderLights(state)
-			elevator.SetTargetOrder <- order.CalculateTargetOrder(state)
+			//delay to ensure that package are sent before turning on lights etc...
+			elevator.StateIn <- state
 
 		case s := <-stateIn:
 			state.Merge(s)
-			elevator.SetOrderLight <- order.CalculateOrderLights(state)
-			elevator.SetTargetOrder <- order.CalculateTargetOrder(state)
+			elevator.StateIn <- state
 
 		case <-timer.C:
 			stateOut <- state

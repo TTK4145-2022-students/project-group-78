@@ -48,7 +48,7 @@ func run() {
 			emit(events.OrderReceived{Order: order})
 
 		case f := <-floorEnteredC:
-			floorEntered(f)
+			floorEntered(f,&doorTimer)
 
 		case obstructed = <-doorObstructionC:
 

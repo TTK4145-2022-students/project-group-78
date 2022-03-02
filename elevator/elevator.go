@@ -60,7 +60,9 @@ func run() {
 			}
 
 		case <-doorTimer.C:
-			doorTimedOut()
+			if !obstructed && state = DoorOpen{
+				closeDoor()
+			}
 			// TODO: send new cs
 
 		case cs := <-StateIn:

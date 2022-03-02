@@ -81,6 +81,9 @@ func floorEntered(f int, doorTimer *time.Timer) State {
 func doorTimedOut() {
 	if newTarget { // TODO: Calculate new target instead
 		State = Moving
+func closeDoor() {
+	if (newTarget){
+		state = Moving 
 		startMotorTowardsTarget(&doorTimer)
 	} else {
 		State = Idle

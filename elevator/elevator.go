@@ -31,7 +31,7 @@ func Init(id int, port int) {
 	go run()
 }
 
-var obstructed bool
+var obstructed bool  = false
 
 func run() {
 	for {
@@ -54,7 +54,10 @@ func run() {
 			floorEntered(f)
 			// TODO: must send new cs and order served
 
-		case obstructed = <-doorObstructionC:
+		case obstructed := <-doorObstructionC:
+			if !obstructed && state = DoorOpen{
+				closeDoor()
+			}
 
 		case <-doorTimer.C:
 			doorTimedOut()

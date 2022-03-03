@@ -1,67 +1,109 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"Network-go/network/bcast"
 
+	"github.com/TTK4145-2022-students/project-group-78/central"
+	"github.com/TTK4145-2022-students/project-group-78/config"
+	"github.com/TTK4145-2022-students/project-group-78/door"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
+	"github.com/TTK4145-2022-students/project-group-78/elevio"
+	"github.com/TTK4145-2022-students/project-group-78/lights"
+	"github.com/TTK4145-2022-students/project-group-78/orders"
 	"github.com/akamensky/argparse"
 )
 
-func main() {
+func parseArgs() (id int, bcastPort int, elevatorPort int) {
 	parser := argparse.NewParser("lifty", "lifty.")
-	id := *parser.Int("i", "id", &argparse.Options{Default: 0})
-	bcastPort := *parser.Int("b", "broadcast-port", &argparse.Options{Default: 46952})
-	elevatorPort := *parser.Int("e", "elevator-port", &argparse.Options{Default: 15657})
+	id = *parser.Int("i", "id", &argparse.Options{Default: 0})
+	bcastPort = *parser.Int("b", "broadcast-port", &argparse.Options{Default: 46952})
+	elevatorPort = *parser.Int("e", "elevator-port", &argparse.Options{Default: 15657})
 
 	err := parser.Parse(os.Args)
 	if err != nil {
 		log.Panic(err)
 	}
+	return
+}
 
-	//
-	state := elevator.NewCentralState(id, elevator.ElevatorState{})
-	elevator.Init(id, elevatorPort)
+func main() {
+	id, bcastPort, elevatorPort := parseArgs()
+	elevio.Init(fmt.Sprintf("127.0.0.1:%v", elevatorPort), config.NUM_FLOORS)
 
-	bcastReceive, bcastSend := make(chan elevator.CentralState), make(chan elevator.CentralState)
-	go bcast.Receiver(bcastPort, bcastReceive)
-	go bcast.Transmitter(bcastPort, bcastSend)
+	doorClosedC := make(chan bool)
+	floorEnteredC, targetReachedC := make(chan int), make(chan int)
+	directionSetC := make(chan elevio.MotorDirection)
+	newCsC, bcastCsC := make(chan central.CentralState), make(chan central.CentralState)
+
+	go door.Door(doorClosedC)
+	go elevator.Elevator(floorEnteredC, targetReachedC, directionSetC)
+	go orders.Orders(id, newCsC)
+	go bcast.Receiver(bcastPort, newCsC)
+	go bcast.Transmitter(bcastPort, bcastCsC)
+
+	cs := central.CentralState{Origin: id}
 
 	for {
 		timer := time.NewTimer(10 * time.Millisecond)
 		select {
-		case s := <-elevator.StateOut:
-			merge(state, s)
-			bcastSend <- state
-			//delay to ensure that package are sent before turning on lights etc...
-			elevator.StateIn <- state
+		case <-doorClosedC:
+			if cs.Elevators[id].State == central.DoorOpen {
+				cs.Elevators[id].State = central.Idle
+				bcastCsC <- cs
+				newCsC <- cs
+			} else {
+				log.Printf("error: Door closed while in %v", cs.Elevators[id].State)
+			}
 
-		case s := <-bcastReceive:
-			merge(state, s)
-			elevator.StateIn <- state
+		case f := <-floorEnteredC:
+			cs.Elevators[id].Floor = f
+			bcastCsC <- cs
+			newCsC <- cs
+
+		case f := <-targetReachedC:
+			if cs.Elevators[id].State == central.ServingOrder {
+				door.OpenC <- true
+				cs.Elevators[id].State = central.DoorOpen
+				cs = orders.DeactivateOrders(cs, f)
+				bcastCsC <- cs
+				newCsC <- cs
+			} else {
+				log.Printf("error: Reached target while in %v", cs.Elevators[id].State)
+			}
+
+		case d := <-directionSetC:
+			cs.Elevators[id].Direction = d
+			bcastCsC <- cs
+			newCsC <- cs
+
+		case newCs := <-newCsC:
+			cs.Merge(newCs)
+			switch cs.Elevators[id].State {
+			case central.Idle:
+				target, ok := orders.CalculateTarget(cs)
+				if ok {
+					elevator.TargetC <- target
+					cs.Elevators[id].State = central.ServingOrder
+					bcastCsC <- cs
+					newCsC <- cs
+				}
+
+			case central.DoorOpen:
+
+			case central.ServingOrder:
+				if target, ok := orders.CalculateTarget(cs); ok {
+					elevator.TargetC <- target
+				}
+			}
+			lights.SetC <- cs
 
 		case <-timer.C:
-			bcastSend <- state
-		}
-	}
-}
-
-// Merge cs2 onto cs1
-func merge(cs1 elevator.CentralState, cs2 elevator.CentralState) {
-	cs1.Elevators[cs2.Origin] = cs2.Elevators[cs2.Origin]
-
-	for o := range cs2.HallOrders {
-		if cs2.HallOrders[o].After(cs1.HallOrders[o]) {
-			cs1.HallOrders[o] = cs2.HallOrders[o]
-		}
-	}
-
-	for o := range cs2.ServedHallOrders {
-		if cs2.ServedHallOrders[o].After(cs1.ServedHallOrders[o]) {
-			cs1.ServedHallOrders[o] = cs2.ServedHallOrders[o]
+			bcastCsC <- cs
 		}
 	}
 }

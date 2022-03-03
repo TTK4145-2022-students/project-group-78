@@ -1,87 +1,82 @@
 package elevator
 
-import (
-	"fmt"
-	"time"
+import "github.com/TTK4145-2022-students/project-group-78/elevio"
 
-	"github.com/TTK4145-2022-students/project-group-78/config"
-	"github.com/TTK4145-2022-students/project-group-78/elevio"
+var TargetC chan int
+
+type relativePosition int
+
+const (
+	above   relativePosition = 1
+	below                    = -1
+	atFloor                  = 0
 )
 
-var StateOut chan CentralState
-var StateIn chan CentralState
-
-var id int
-var buttonPressedC chan elevio.ButtonEvent
-var floorEnteredC chan int
-var doorObstructionC chan bool
-
-func Init(id_ int, port int) {
-	id = id_
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.NUM_FLOORS)
-
-	go elevio.PollButtons(buttonPressedC)
+func Elevator(floorC chan int, targetReachedC chan int, directionC chan elevio.MotorDirection) {
+	floorEnteredC := make(chan int)
 	go elevio.PollFloorSensor(floorEnteredC)
-	go elevio.PollObstructionSwitch(doorObstructionC)
-	go run()
-}
 
-func run() {
-	obstructed := false
-	elevatorState := ElevatorState{State: Moving, Direction: elevio.MD_Up}
-	doorTimer := time.NewTimer(time.Hour)
-	doorTimer.Stop()
+	var relPos relativePosition = below
+	floor := -1
+	target := -1
+	var direction relativePosition = below
 
 	for {
 		select {
-		case be := <-buttonPressedC:
-			cs := buttonPressed(be, elevatorState)
-			elevatorState = cs.Elevators[id]
-			StateOut <- cs
-
-		case f := <-floorEnteredC:
-			cs := floorEntered(f, elevatorState, doorTimer)
-			elevatorState = cs.Elevators[id]
-			StateOut <- cs
-
-		case obstructed = <-doorObstructionC:
-			if !obstructed && elevatorState.State == DoorOpen {
-				elevatorState = closeDoor(elevatorState)
-				StateOut <- NewCentralState(id, elevatorState)
+		case floor = <-floorEnteredC:
+			floorC <- floor
+			if floor == target {
+				elevio.SetMotorDirection(elevio.MD_Stop)
+				directionC <- elevio.MD_Stop
+				targetReachedC <- target
+				relPos = atFloor
+			} else {
+				relPos = relativePosition(direction)
 			}
 
-		case <-doorTimer.C:
-			if !obstructed && elevatorState.State == DoorOpen {
-				elevatorState = closeDoor(elevatorState)
-				StateOut <- NewCentralState(id, elevatorState)
+		case target = <-TargetC:
+			if floor == target && relPos == atFloor {
+				targetReachedC <- target
+			} else {
+				//TODO: Ulrik fix?
+				/*
+					Suggestion:
+						Assume that you are not at target
+						Create a pure function that calculates the direction
+						Make sure to emit direction at directionC if it changes
+						Also update relPos if needed
+				*/
 			}
-
-		case cs := <-StateIn:
-			target, notEmpty := calculateTargetOrder(cs)
-			if !notEmpty && target != elevatorState.Target {
-				elevatorState.Target = target
-				cs = targetOrderUpdated(elevatorState, doorTimer)
-				elevatorState = cs.Elevators[id]
-				StateOut <- cs
-			}
-
-			//TODO: add delay to lights
-			setLights(cs)
 		}
 	}
 }
 
-var lastLightValues map[Order]bool
+/*
+func startMotorTowardsTarget(es ElevatorState) ElevatorState {
+	if es.Target.Floor == es.Floor {
+		switch es.RelativePosition {
+		case Above:
+			elevio.SetMotorDirection(elevio.MD_Down)
+			es.Direction = elevio.MD_Down
 
-func init() {
-	lastLightValues = make(map[Order]bool, 1)
-}
+		case AtFloor:
+			log.Panic("Tried to start motor while at target")
 
-func setLights(cs CentralState) {
-	for o := range cs.HallOrders {
-		if value := cs.HallOrders[o].After(cs.ServedHallOrders[o]); value != lastLightValues[o] {
-			elevio.SetButtonLamp(o.Type, o.Floor, value)
-			lastLightValues[o] = value
+		case Below:
+			elevio.SetMotorDirection(elevio.MD_Up)
+			es.Direction = elevio.MD_Up
 		}
+
+	} else if es.Floor < es.Target.Floor {
+		elevio.SetMotorDirection(elevio.MD_Up)
+		es.Direction = elevio.MD_Up
+
+	} else {
+		elevio.SetMotorDirection(elevio.MD_Down)
+		es.Direction = elevio.MD_Down
+
 	}
+	es.State = Moving
+	return es
 }
+*/

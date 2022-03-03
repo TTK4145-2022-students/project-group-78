@@ -3,19 +3,18 @@ package orders
 import (
 	"time"
 
-	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
 
-func Orders(id int, csC chan central.CentralState) {
+func Orders(id int, csC chan CentralState) {
 	buttonPressedC := make(chan elevio.ButtonEvent)
 	for {
 		select {
 		case be := <-buttonPressedC:
-			cs := central.CentralState{Origin: id}
+			cs := CentralState{Origin: id}
 			switch be.Button {
 			case elevio.BT_Cab:
-				cs.Elevators[id].CabOrders[be.Floor] = true
+				cs.CabOrders[id][be.Floor] = true
 
 			case elevio.BT_HallUp:
 				cs.HallOrders[be.Floor].Up.Active = true

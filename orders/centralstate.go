@@ -1,18 +1,10 @@
-package central
+package orders
 
 import (
 	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/config"
-	"github.com/TTK4145-2022-students/project-group-78/elevio"
-)
-
-type State string
-
-const (
-	DoorOpen     State = "doorOpen"
-	ServingOrder       = "servingOrder"
-	Idle               = "idle"
+	"github.com/TTK4145-2022-students/project-group-78/elevator"
 )
 
 type CentralState struct {
@@ -21,14 +13,8 @@ type CentralState struct {
 		Up   Order
 		Down Order
 	}
-	Elevators [config.NUM_ELEVATORS]ElevatorState
-}
-
-type ElevatorState struct {
-	State     State
-	Direction elevio.MotorDirection
-	Floor     int
-	CabOrders [config.NUM_FLOORS]bool
+	CabOrders [config.NUM_ELEVATORS][config.NUM_FLOORS]bool
+	States    [config.NUM_ELEVATORS]elevator.State
 }
 
 type Order struct {
@@ -36,8 +22,9 @@ type Order struct {
 	Time   time.Time
 }
 
-func (cs *CentralState) Merge(newCs CentralState) {
-	cs.Elevators[newCs.Origin] = newCs.Elevators[newCs.Origin]
+func (cs CentralState) Merge(newCs CentralState) CentralState {
+	cs.States[newCs.Origin] = newCs.States[newCs.Origin]
+	cs.CabOrders[newCs.Origin] = newCs.CabOrders[newCs.Origin]
 	for i := 0; i < len(cs.HallOrders); i++ {
 		if cs.HallOrders[i].Up.Time.Before(newCs.HallOrders[i].Up.Time) {
 			cs.HallOrders[i].Up = newCs.HallOrders[i].Up
@@ -46,4 +33,5 @@ func (cs *CentralState) Merge(newCs CentralState) {
 			cs.HallOrders[i].Down = newCs.HallOrders[i].Down
 		}
 	}
+	return cs
 }

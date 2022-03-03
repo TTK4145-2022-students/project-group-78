@@ -1,29 +1,29 @@
 package lights
 
 import (
-	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
+	"github.com/TTK4145-2022-students/project-group-78/orders"
 )
 
-var SetC chan central.CentralState
+var SetC chan orders.CentralState
 
 func Lights() {
-	prevCs := central.CentralState{}
+	prevCs := orders.CentralState{}
 	for {
 		select {
 		case cs := <-SetC:
-			for i := 0; i < len(cs.Elevators[cs.Origin].CabOrders); i++ {
-				if cs.Elevators[cs.Origin].CabOrders[i] != prevCs.Elevators[cs.Origin].CabOrders[i] {
-					elevio.SetButtonLamp(elevio.BT_Cab, i, cs.Elevators[cs.Origin].CabOrders[i])
+			for f := 0; f < len(cs.CabOrders); f++ {
+				if cs.CabOrders[cs.Origin][f] != prevCs.CabOrders[cs.Origin][f] {
+					elevio.SetButtonLamp(elevio.BT_Cab, f, cs.CabOrders[cs.Origin][f])
 				}
 			}
 
-			for i := 0; i < len(cs.HallOrders); i++ {
-				if cs.HallOrders[i].Up.Active != prevCs.HallOrders[i].Up.Active {
-					elevio.SetButtonLamp(elevio.BT_HallUp, i, cs.HallOrders[i].Up.Active)
+			for f := 0; f < len(cs.HallOrders); f++ {
+				if cs.HallOrders[f].Up.Active != prevCs.HallOrders[f].Up.Active {
+					elevio.SetButtonLamp(elevio.BT_HallUp, f, cs.HallOrders[f].Up.Active)
 				}
-				if cs.HallOrders[i].Down.Active != prevCs.HallOrders[i].Down.Active {
-					elevio.SetButtonLamp(elevio.BT_HallDown, i, cs.HallOrders[i].Down.Active)
+				if cs.HallOrders[f].Down.Active != prevCs.HallOrders[f].Down.Active {
+					elevio.SetButtonLamp(elevio.BT_HallDown, f, cs.HallOrders[f].Down.Active)
 				}
 			}
 			prevCs = cs

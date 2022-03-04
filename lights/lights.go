@@ -8,6 +8,7 @@ import (
 var SetC chan orders.CentralState
 
 func Lights() {
+	SetC = make(chan orders.CentralState)
 	prevCs := orders.CentralState{}
 	for {
 		select {

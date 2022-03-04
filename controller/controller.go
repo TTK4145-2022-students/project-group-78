@@ -13,6 +13,7 @@ const (
 )
 
 func Controller(floorC chan int, targetReachedC chan int, directionC chan elevio.MotorDirection) {
+	TargetC = make(chan int)
 	floorEnteredC := make(chan int)
 	go elevio.PollFloorSensor(floorEnteredC)
 

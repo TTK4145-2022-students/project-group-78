@@ -10,6 +10,7 @@ import (
 var OpenC chan bool
 
 func Door(closedC chan bool) {
+	OpenC = make(chan bool)
 	obstructionC := make(chan bool)
 	go elevio.PollObstructionSwitch(obstructionC)
 

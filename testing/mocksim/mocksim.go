@@ -31,26 +31,24 @@ type OrderLight struct {
 func SetFloor(f int) {
 	atomic.StoreInt32(floor, int32(f))
 }
+
 var OrderButtons [config.NUM_FLOORS][3]*abool.AtomicBool
 var AtFloor *abool.AtomicBool
 var Stop *abool.AtomicBool
 var Obstruction *abool.AtomicBool
-
 var floor *int32
 
-func init() {
+func Sim(port int, reloadConfigC chan bool, motorDirectionC chan elevio.MotorDirection, orderLightC chan OrderLight, floorIndicatorC chan int, doorLightC chan bool, stopLightC chan bool) {
 	for f := 0; f < len(OrderButtons); f++ {
 		for i := 0; i < len(OrderButtons[f]); i++ {
 			OrderButtons[f][i] = abool.New()
 		}
 	}
-	floor = new(int32)
 	AtFloor = abool.New()
 	Stop = abool.New()
 	Obstruction = abool.New()
-}
+	floor = new(int32)
 
-func Sim(port int, reloadConfigC chan bool, motorDirectionC chan elevio.MotorDirection, orderLightC chan OrderLight, floorIndicatorC chan int, doorLightC chan bool, stopLightC chan bool) {
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: nil, Port: port})
 	if err != nil {
 		log.Panic(err)
@@ -58,9 +56,15 @@ func Sim(port int, reloadConfigC chan bool, motorDirectionC chan elevio.MotorDir
 
 	for {
 		conn, err := listener.AcceptTCP()
-		for err != nil {
+
+		for {
 			msg := make([]byte, 4)
 			_, err = conn.Read(msg)
+			if err != nil {
+				log.Print(err)
+				break
+			}
+
 			switch msg[0] {
 			case 0:
 				reloadConfigC <- true
@@ -82,19 +86,22 @@ func Sim(port int, reloadConfigC chan bool, motorDirectionC chan elevio.MotorDir
 
 			case 6:
 				value := OrderButtons[int(msg[2])][int(msg[1])].IsSet()
-				send(conn, msg[0], toByte(value))
+				err = send(conn, msg[0], toByte(value))
 
 			case 7:
-				send(conn, msg[0], toByte(AtFloor.IsSet()), byte(atomic.LoadInt32(floor)))
+				err = send(conn, msg[0], toByte(AtFloor.IsSet()), byte(atomic.LoadInt32(floor)))
 
 			case 8:
-				send(conn, msg[0], toByte(Stop.IsSet()))
+				err = send(conn, msg[0], toByte(Stop.IsSet()))
 
 			case 9:
-				send(conn, msg[0], toByte(Obstruction.IsSet()))
+				err = send(conn, msg[0], toByte(Obstruction.IsSet()))
+			}
+			if err != nil {
+				log.Print(err)
+				break
 			}
 		}
-		log.Print(err)
 	}
 }
 

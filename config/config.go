@@ -5,3 +5,4 @@ import "time"
 const NUM_ELEVATORS = 3
 const NUM_FLOORS = 4
 const DOOR_OPEN_TIME = 3 * time.Second
+const TRANSMIT_INTERVAL = 5 * time.Millisecond

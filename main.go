@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"time"
@@ -9,9 +8,7 @@ import (
 	"Network-go/network/bcast"
 
 	"github.com/TTK4145-2022-students/project-group-78/config"
-	"github.com/TTK4145-2022-students/project-group-78/elevator"
-	"github.com/TTK4145-2022-students/project-group-78/elevio"
-	"github.com/TTK4145-2022-students/project-group-78/lights"
+	"github.com/TTK4145-2022-students/project-group-78/node"
 	"github.com/TTK4145-2022-students/project-group-78/orders"
 	"github.com/akamensky/argparse"
 )
@@ -31,41 +28,27 @@ func clParams() (id int, bcastPort int, elevatorPort int) {
 
 func main() {
 	id, bcastPort, elevatorPort := clParams()
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", elevatorPort), config.NUM_FLOORS)
+	nodeOutC := make(chan orders.CentralState)
+	bcastTransmitC, bcastReceiveC := make(chan orders.CentralState), make(chan orders.CentralState)
 
-	targetReachedC := make(chan int)
-	stateC := make(chan elevator.State)
-	newCsC, bcastCsC := make(chan orders.CentralState), make(chan orders.CentralState)
-
-	go elevator.Elevator(targetReachedC, stateC)
-	go orders.Orders(id, newCsC)
-	go bcast.Receiver(bcastPort, newCsC)
-	go bcast.Transmitter(bcastPort, bcastCsC)
+	node.Node(id, elevatorPort, nodeOutC)
+	go bcast.Receiver(bcastPort, bcastReceiveC)
+	go bcast.Transmitter(bcastPort, bcastTransmitC)
 
 	cs := orders.CentralState{Origin: id}
 
 	for {
-		timer := time.NewTimer(10 * time.Millisecond)
 		select {
-		case f := <-targetReachedC:
-			cs = orders.DeactivateOrders(cs, f)
-			bcastCsC <- cs
-			newCsC <- cs
-
-		case s := <-stateC:
-			cs.States[id] = s
-			bcastCsC <- cs
-			newCsC <- cs
-
-		case newCs := <-newCsC:
+		case newCs := <-bcastReceiveC:
 			cs = cs.Merge(newCs)
-			if target, ok := orders.CalculateTarget(cs); ok {
-				elevator.TargetC <- target
-			}
-			lights.SetC <- cs
+			node.InC <- cs
 
-		case <-timer.C:
-			bcastCsC <- cs
+		case newCs := <-nodeOutC:
+			cs = cs.Merge(newCs)
+			bcastTransmitC <- cs
+
+		case <-time.After(config.TRANSMIT_INTERVAL):
+			bcastTransmitC <- cs
 		}
 	}
 }

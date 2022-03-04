@@ -6,4 +6,6 @@ require github.com/akamensky/argparse v1.3.1
 
 require Network-go v0.0.0
 
+require github.com/tevino/abool v1.2.0 // indirect
+
 replace Network-go => ./Network-go

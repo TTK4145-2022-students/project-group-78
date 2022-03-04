@@ -1,4 +1,4 @@
-package mocksim
+package mockelevator
 
 import (
 	"log"

@@ -1,98 +1,123 @@
 package mocknet
 
 import (
+	"errors"
 	"log"
 	"math/rand"
 	"net"
 	"os/exec"
-	"sync/atomic"
-
-	log "github.com/sirupsen/logrus"
-	"github.com/tevino/abool"
+	"sync"
 )
 
 func setDnat() {
-	err := exec.Command("iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", "255.255.255.255", "-j", "DNAT", "--to-destination", "127.255.255.255").Run()
+	err := exec.Command("sudo", "iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", "255.255.255.255", "-j", "DNAT", "--to-destination", "127.255.255.255").Run()
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
 func unSetDnat() {
-	err := exec.Command("iptables", "-t", "nat", "-D", "OUTPUT", "-p", "udp", "-d", "255.255.255.255", "-j", "DNAT", "--to-destination", "127.255.255.255").Run()
+	err := exec.Command("sudo", "iptables", "-t", "nat", "-D", "OUTPUT", "-p", "udp", "-d", "255.255.255.255", "-j", "DNAT", "--to-destination", "127.255.255.255").Run()
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
 type Mocknet struct {
-	connectedPorts map[int]*abool.AtomicBool
-	lossPercentage *int32
-	stop           *abool.AtomicBool
+	conns          map[int]*net.UDPConn
+	mutex          sync.Mutex
+	lossPercentage int
 }
 
 func New(ports ...int) *Mocknet {
 	setDnat()
+	rand.Seed(0)
 	m := &Mocknet{
-		connectedPorts: make(map[int]*abool.AtomicBool, len(ports)),
-		lossPercentage: new(int32),
-		stop:           abool.New(),
+		conns: make(map[int]*net.UDPConn),
+		mutex: sync.Mutex{},
 	}
 
 	for _, port := range ports {
-		m.connectedPorts[port] = abool.New()
-		m.connectedPorts[port].Set()
-		go m.run(port)
+		m.Connect(port)
 	}
 	return m
 }
 
-// TODO: find way to stop goroutines
-
-func (m *Mocknet) run(port int) {
+func (m *Mocknet) Connect(port int) {
 	addr := &net.UDPAddr{IP: net.ParseIP("127.255.255.255"), Port: port}
 	conn, err := net.ListenUDP("udp", addr)
 	if err == nil {
-		log.Print("mocknet: Listening on %v", conn.LocalAddr().String())
+		log.Printf("mocknet: Listening on %v", conn.LocalAddr().String())
 	} else {
 		log.Panic(err)
 	}
+	m.conns[port] = conn
+	go m.run(conn)
+}
 
-	msg := make([]byte, 1024)
-	for m.stop.IsNotSet() {
-		if _, err := conn.Read(msg); err != nil {
-			if m.stop.IsSet() {
-				break
-			} else {
-				log.Panic(err)
-			}
+func (m *Mocknet) run(conn *net.UDPConn) {
+	for {
+		msg := [1024]byte{}
+		n, err := conn.Read(msg[:])
+		if errors.Is(err, net.ErrClosed) {
+			return
+		} else if err != nil {
+			log.Panic(err)
 		}
 
 		if m.shouldLose() {
 			continue
 		}
 
-		for port, connected := range m.connectedPorts {
-			if connected.IsNotSet() {
-				continue
-			}
+		for _, port := range m.getPorts() {
 			if m.shouldLose() {
 				continue
 			}
-			conn.WriteToUDP(msg, &net.UDPAddr{IP: nil, Port: port})
+			addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: port}
+			_, err := conn.WriteToUDP(msg[:n], addr)
+			if errors.Is(err, net.ErrClosed) {
+				return
+			} else if err != nil {
+				log.Panic(err)
+			}
 		}
 	}
 }
 
 func (m *Mocknet) Stop() {
-	m.stop.Set()
+	for _, port := range m.getPorts() {
+		m.Disconnect(port)
+	}
 	unSetDnat()
 }
 
+func (m *Mocknet) Disconnect(port int) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.conns[port].Close()
+	delete(m.conns, port)
+}
+
 func (m *Mocknet) SetLossPercentage(percentage int) {
-	atomic.StoreInt32(m.lossPercentage, int32(percentage))
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.lossPercentage = percentage
 }
 
 func (m *Mocknet) shouldLose() bool {
-	return rand.Intn(100) <= int(atomic.LoadInt32(m.lossPercentage))
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	return rand.Intn(100) <= m.lossPercentage
+}
+
+func (m *Mocknet) getPorts() []int {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	ports := make([]int, len(m.conns))
+	i := 0
+	for port := range m.conns {
+		ports[i] = port
+		i++
+	}
+	return ports
 }

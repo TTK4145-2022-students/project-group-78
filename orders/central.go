@@ -22,6 +22,7 @@ type Order struct {
 	Time   time.Time
 }
 
+// Merge newCs onto cs. If cs happend before newCs, overwrite with newCs
 func (cs CentralState) Merge(newCs CentralState) CentralState {
 	cs.States[newCs.Origin] = newCs.States[newCs.Origin]
 	cs.CabOrders[newCs.Origin] = newCs.CabOrders[newCs.Origin]

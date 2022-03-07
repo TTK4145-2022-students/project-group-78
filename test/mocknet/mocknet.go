@@ -5,42 +5,55 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"os/exec"
-	"sync"
+	"time"
 )
 
-func setDnat() {
-	err := exec.Command("sudo", "iptables", "-t", "nat", "-A", "OUTPUT", "-p", "udp", "-d", "255.255.255.255", "-j", "DNAT", "--to-destination", "127.255.255.255").Run()
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
-func unSetDnat() {
-	err := exec.Command("sudo", "iptables", "-t", "nat", "-D", "OUTPUT", "-p", "udp", "-d", "255.255.255.255", "-j", "DNAT", "--to-destination", "127.255.255.255").Run()
-	if err != nil {
-		log.Panic(err)
-	}
-}
-
 type Mocknet struct {
-	conns          map[int]*net.UDPConn
-	mutex          sync.Mutex
-	lossPercentage int
+	LossPercentage int
+
+	conns   map[int]*net.UDPConn
+	closed  bool
+	msgC    chan []byte
+	closedC chan int
 }
 
 func New(ports ...int) *Mocknet {
-	setDnat()
 	rand.Seed(0)
 	m := &Mocknet{
-		conns: make(map[int]*net.UDPConn),
-		mutex: sync.Mutex{},
+		conns:   make(map[int]*net.UDPConn, len(ports)),
+		msgC:    make(chan []byte),
+		closedC: make(chan int),
 	}
-
 	for _, port := range ports {
 		m.Connect(port)
 	}
+	go m.run()
 	return m
+}
+
+func (m *Mocknet) run() {
+	for {
+		select {
+		case closed := <-m.closedC:
+			delete(m.conns, closed)
+
+		case msg := <-m.msgC:
+			if shouldLose(m.LossPercentage) {
+				continue
+			}
+			for port, conn := range m.conns {
+				if !shouldLose(m.LossPercentage) {
+					send(conn, port, msg)
+				}
+			}
+
+		case <-time.After(time.Second):
+			if m.closed && len(m.conns) == 0 {
+				log.Print("mocknet: Closed")
+				return
+			}
+		}
+	}
 }
 
 func (m *Mocknet) Connect(port int) {
@@ -52,72 +65,57 @@ func (m *Mocknet) Connect(port int) {
 		log.Panic(err)
 	}
 	m.conns[port] = conn
-	go m.run(conn)
-}
-
-func (m *Mocknet) run(conn *net.UDPConn) {
-	for {
-		msg := [1024]byte{}
-		n, err := conn.Read(msg[:])
-		if errors.Is(err, net.ErrClosed) {
-			return
-		} else if err != nil {
-			log.Panic(err)
-		}
-
-		if m.shouldLose() {
-			continue
-		}
-
-		for _, port := range m.getPorts() {
-			if m.shouldLose() {
-				continue
-			}
-			addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: port}
-			_, err := conn.WriteToUDP(msg[:n], addr)
-			if errors.Is(err, net.ErrClosed) {
-				return
-			} else if err != nil {
-				log.Panic(err)
-			}
-		}
-	}
-}
-
-func (m *Mocknet) Stop() {
-	for _, port := range m.getPorts() {
-		m.Disconnect(port)
-	}
-	unSetDnat()
+	go receiver(conn, port, m.msgC, m.closedC)
 }
 
 func (m *Mocknet) Disconnect(port int) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.conns[port].Close()
-	delete(m.conns, port)
-}
-
-func (m *Mocknet) SetLossPercentage(percentage int) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.lossPercentage = percentage
-}
-
-func (m *Mocknet) shouldLose() bool {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	return rand.Intn(100) <= m.lossPercentage
-}
-
-func (m *Mocknet) getPorts() []int {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	ports := make([]int, len(m.conns))
-	i := 0
-	for port := range m.conns {
-		ports[i] = port
-		i++
+	conn, ok := m.conns[port]
+	if !ok {
+		log.Panicf("mocknet: Can not disconnect %v because it is not connected", port)
 	}
-	return ports
+	if err := conn.Close(); err != nil {
+		log.Panic(err)
+	}
+}
+
+func (m *Mocknet) Close() {
+	for _, conn := range m.conns {
+		err := conn.Close()
+		if errors.Is(err, net.ErrClosed) {
+			continue
+		} else if err != nil {
+			log.Panic(err)
+		}
+	}
+	m.closed = true
+}
+
+func receiver(conn *net.UDPConn, port int, msgC chan []byte, closedC chan int) {
+	for {
+		msg := [1024]byte{}
+		n, err := conn.Read(msg[:])
+		switch {
+		case errors.Is(err, net.ErrClosed):
+			log.Print(err)
+			closedC <- port
+			return
+
+		case err != nil:
+			log.Panic(err)
+
+		default:
+			msgC <- msg[:n]
+		}
+	}
+}
+
+func shouldLose(lossPercentage int) bool {
+	return rand.Intn(100) < lossPercentage
+}
+
+func send(conn *net.UDPConn, port int, msg []byte) {
+	addr := &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: port}
+	if _, err := conn.WriteToUDP(msg, addr); err != nil {
+		log.Panic(err)
+	}
 }

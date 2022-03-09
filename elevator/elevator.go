@@ -99,7 +99,18 @@ func chooseNextDirection(orders [config.NUM_FLOORS][3]bool, d elevio.MotorDirect
 }
 
 func shouldStop(orders [config.NUM_FLOORS][3]bool, floor int, direction elevio.MotorDirection) bool {
-	return false
+	switch direction {
+	case elevio.MD_Down:
+		return orders[floor][elevio.BT_HallDown] || orders[floor][elevio.BT_Cab] || !orders.below
+	case elevio.MD_Up:
+		return orders[floor][elevio.BT_HallUp] || orders[floor][elevio.BT_Cab] || !orders.above
+	case elevio.MD_Stop:
+		log.Panicf("Direction is  %v, when expected to be up or down", direction)
+		return true
+	default:
+		log.Panicf("Direction is corrupted %v", direction)
+		return false
+	}
 }
 
 func clearOrders(orders [config.NUM_FLOORS][3]bool, floor int, direction elevio.MotorDirection, completedOrderC chan<- elevio.ButtonEvent) {

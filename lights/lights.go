@@ -1,33 +1,28 @@
 package lights
 
 import (
+	"github.com/TTK4145-2022-students/project-group-78/central"
+	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
-	"github.com/TTK4145-2022-students/project-group-78/orders"
 )
 
-var SetC chan orders.CentralState
+var lights [config.NUM_FLOORS][3]bool
 
-func Lights() {
-	SetC = make(chan orders.CentralState)
-	prevCs := orders.CentralState{}
-	for {
-		select {
-		case cs := <-SetC:
-			for f := 0; f < len(cs.CabOrders); f++ {
-				if cs.CabOrders[cs.Origin][f] != prevCs.CabOrders[cs.Origin][f] {
-					elevio.SetButtonLamp(elevio.BT_Cab, f, cs.CabOrders[cs.Origin][f])
-				}
+func Set(cs central.CentralState) {
+	cabOrders := cs.CabOrders[cs.Origin]
+	for f := 0; f < len(cabOrders); f++ {
+		if cabOrders[f] != lights[f][elevio.BT_Cab] {
+			elevio.SetButtonLamp(elevio.BT_Cab, f, cabOrders[f])
+			lights[f][elevio.BT_Cab] = cabOrders[f]
+		}
+	}
+	for f := 0; f < len(cs.HallOrders); f++ {
+		for bt := 0; bt < 2; bt++ {
+			value := cs.HallOrders[f][bt].Active
+			if value != lights[f][bt] {
+				elevio.SetButtonLamp(elevio.ButtonType(bt), f, value)
+				lights[f][bt] = value
 			}
-
-			for f := 0; f < len(cs.HallOrders); f++ {
-				if cs.HallOrders[f].Up.Active != prevCs.HallOrders[f].Up.Active {
-					elevio.SetButtonLamp(elevio.BT_HallUp, f, cs.HallOrders[f].Up.Active)
-				}
-				if cs.HallOrders[f].Down.Active != prevCs.HallOrders[f].Down.Active {
-					elevio.SetButtonLamp(elevio.BT_HallDown, f, cs.HallOrders[f].Down.Active)
-				}
-			}
-			prevCs = cs
 		}
 	}
 }

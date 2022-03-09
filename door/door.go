@@ -7,10 +7,7 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
 
-var OpenC chan bool
-
-func Door(closedC chan bool) {
-	OpenC = make(chan bool)
+func Door(openC <-chan bool, closedC chan<- bool) {
 	obstructionC := make(chan bool)
 	go elevio.PollObstructionSwitch(obstructionC)
 
@@ -28,7 +25,7 @@ func Door(closedC chan bool) {
 				closedC <- true
 			}
 
-		case <-OpenC:
+		case <-openC:
 			elevio.SetDoorOpenLamp(true)
 			timer = time.NewTimer(config.DOOR_OPEN_TIME)
 

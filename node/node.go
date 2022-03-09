@@ -3,44 +3,40 @@ package node
 import (
 	"fmt"
 
+	"github.com/TTK4145-2022-students/project-group-78/assigner"
+	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 	"github.com/TTK4145-2022-students/project-group-78/lights"
-	"github.com/TTK4145-2022-students/project-group-78/orders"
 )
 
-var InC chan orders.CentralState
-
-func Node(id int, port int, outC chan orders.CentralState) {
-	InC = make(chan orders.CentralState)
-	targetReachedC, stateC := make(chan int), make(chan elevator.State)
-	csOrderC := make(chan orders.CentralState)
+func Node(id string, port int, inC <-chan central.CentralState, outC chan<- central.CentralState) {
+	newOrderC := make(chan elevio.ButtonEvent)
+	orderCompletedC, stateC := make(chan elevio.ButtonEvent), make(chan elevator.State)
+	assignedOrdersC := make(chan [config.NUM_FLOORS][3]bool)
 
 	elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.NUM_FLOORS)
-	go elevator.Elevator(targetReachedC, stateC)
-	go orders.Orders(id, csOrderC)
+	go elevator.Elevator(assignedOrdersC, orderCompletedC, stateC)
+	go elevio.PollButtons(newOrderC)
 
-	cs := orders.CentralState{Origin: id}
+	cs := central.New(id)
 	for {
 		select {
-		case f := <-targetReachedC:
-			cs = orders.DeactivateOrders(cs, f)
-			outC <- cs
+		case o := <-newOrderC:
+			cs = cs.SetOrder(o, true)
 
-		case cs.States[id] = <-stateC:
-			outC <- cs
+		case o := <-orderCompletedC:
+			cs = cs.SetOrder(o, false)
 
-		case newCs := <-csOrderC:
-			cs = cs.Merge(newCs)
-			outC <- cs
+		case s := <-stateC:
+			cs.States[id] = s
 
-		case newCs := <-InC:
+		case newCs := <-inC:
 			cs = cs.Merge(newCs)
 		}
-		if target, ok := orders.CalculateTarget(cs); ok {
-			elevator.TargetC <- target
-		}
-		lights.SetC <- cs
+		assignedOrdersC <- assigner.Assigner(cs)
+		outC <- cs
+		lights.Set(cs)
 	}
 }

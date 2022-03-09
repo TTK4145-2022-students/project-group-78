@@ -8,7 +8,6 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
-	"github.com/TTK4145-2022-students/project-group-78/lights"
 )
 
 func Node(id string, port int, inC <-chan central.CentralState, outC chan<- central.CentralState) {
@@ -25,18 +24,20 @@ func Node(id string, port int, inC <-chan central.CentralState, outC chan<- cent
 		select {
 		case o := <-newOrderC:
 			cs = cs.SetOrder(o, true)
+			outC <- cs
 
 		case o := <-orderCompletedC:
 			cs = cs.SetOrder(o, false)
+			outC <- cs
 
 		case s := <-stateC:
 			cs.States[id] = s
+			outC <- cs
 
 		case newCs := <-inC:
 			cs = cs.Merge(newCs)
 		}
 		assignedOrdersC <- assigner.Assigner(cs)
-		outC <- cs
-		lights.Set(cs)
+		setLights(cs)
 	}
 }

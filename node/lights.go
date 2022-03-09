@@ -1,14 +1,14 @@
-package lights
+package node
 
 import (
 	"github.com/TTK4145-2022-students/project-group-78/central"
-	"github.com/TTK4145-2022-students/project-group-78/config"
+	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
 
-var lights [config.NUM_FLOORS][3]bool
+var lights elevator.Orders
 
-func Set(cs central.CentralState) {
+func setLights(cs central.CentralState) {
 	cabOrders := cs.CabOrders[cs.Origin]
 	for f := 0; f < len(cabOrders); f++ {
 		if cabOrders[f] != lights[f][elevio.BT_Cab] {

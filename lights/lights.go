@@ -1,14 +1,15 @@
-package node
+package lights
 
 import (
 	"github.com/TTK4145-2022-students/project-group-78/central"
+	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
 
 var lights elevator.Orders
 
-func setLights(cs central.CentralState) {
+func Set(cs central.CentralState) {
 	cabOrders := cs.CabOrders[cs.Origin]
 	for f := 0; f < len(cabOrders); f++ {
 		if cabOrders[f] != lights[f][elevio.BT_Cab] {
@@ -23,6 +24,15 @@ func setLights(cs central.CentralState) {
 				elevio.SetButtonLamp(elevio.ButtonType(bt), f, value)
 				lights[f][bt] = value
 			}
+		}
+	}
+}
+
+func Clear() {
+	elevio.SetDoorOpenLamp(false)
+	for f := 0; f < config.NUM_FLOORS; f++ {
+		for bt := 0; bt < 3; bt++ {
+			elevio.SetButtonLamp(elevio.ButtonType(bt), f, false)
 		}
 	}
 }

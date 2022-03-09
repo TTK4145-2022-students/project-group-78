@@ -51,7 +51,7 @@ func hallRequestAssigner(cs central.CentralState) map[string]elevator.Orders {
 		log.Panic(err)
 	}
 
-	output, err := exec.Command("./hall_request_assigner", "-i", "--includeCab", string(b)).Output()
+	output, err := exec.Command("hall_request_assigner", "-i", "--includeCab", string(b)).Output()
 	if err != nil {
 		log.Panic(err)
 	}

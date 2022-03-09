@@ -1,6 +1,7 @@
 package elevator
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/TTK4145-2022-students/project-group-78/door"
@@ -52,9 +53,9 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 			stateC <- state
 
 		case state.Floor = <-floorEnteredC:
+			elevio.SetFloorIndicator(state.Floor)
 			if state.Behaviour != Moving {
 				log.Panicf("elevator entered floor while %v", state.Behaviour)
-
 			}
 			if shouldStop(orders, state.Floor, state.Direction) {
 				elevio.SetMotorDirection(elevio.MD_Stop)
@@ -68,17 +69,18 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 			if state.Behaviour != Idle {
 				continue
 			}
-
 			state.Direction, state.Behaviour = nextAction(orders, state.Floor, state.Direction)
-			if state.Direction == elevio.MD_Stop {
+			switch state.Behaviour {
+			case Idle:
+			case DoorOpen:
 				doorOpenC <- true
-				state.Behaviour = DoorOpen
-			} else {
-				elevio.SetMotorDirection(state.Direction)
-				state.Behaviour = Moving
-			}
-			stateC <- state
+				clearOrders(orders, state.Floor, state.Direction, completedOrderC)
+				stateC <- state
 
+			case Moving:
+				elevio.SetMotorDirection(state.Direction)
+				stateC <- state
+			}
 		}
 	}
 }
@@ -131,11 +133,9 @@ func shouldStop(orders Orders, floor int, direction elevio.MotorDirection) bool 
 	case elevio.MD_Up:
 		return orders[floor][elevio.BT_HallUp] || orders[floor][elevio.BT_Cab] || !orders.Above(floor)
 	case elevio.MD_Stop:
-		log.Panicf("Direction is  %v, when expected to be up or down", direction)
-		return true
+		panic("elevator: direction should not be stop")
 	default:
-		log.Panicf("Direction is corrupted %v", direction)
-		return false
+		panic(fmt.Sprintf("elevator: unknown direction %v", direction))
 	}
 }
 
@@ -143,22 +143,12 @@ func clearOrders(orders Orders, floor int, direction elevio.MotorDirection, comp
 	if orders[floor][elevio.BT_Cab] {
 		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
 	}
-
-	switch direction {
-	case elevio.MD_Up:
+	if direction == elevio.MD_Up || direction == elevio.MD_Stop {
 		if orders[floor][elevio.BT_HallUp] {
 			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp}
 		}
-
-	case elevio.MD_Down:
-		if orders[floor][elevio.BT_HallDown] {
-			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown}
-		}
-
-	case elevio.MD_Stop:
-		if orders[floor][elevio.BT_HallUp] {
-			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp}
-		}
+	}
+	if direction == elevio.MD_Down || direction == elevio.MD_Stop {
 		if orders[floor][elevio.BT_HallDown] {
 			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown}
 		}

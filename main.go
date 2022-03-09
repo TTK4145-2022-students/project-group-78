@@ -1,55 +1,67 @@
 package main
 
 import (
-	"log"
-	"os"
+	"Network-go/network/bcast"
+	"flag"
+	"fmt"
 	"time"
 
-	"Network-go/network/bcast"
-
+	"github.com/TTK4145-2022-students/project-group-78/assigner"
 	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/config"
-	"github.com/TTK4145-2022-students/project-group-78/node"
-	"github.com/akamensky/argparse"
+	"github.com/TTK4145-2022-students/project-group-78/elevator"
+	"github.com/TTK4145-2022-students/project-group-78/elevio"
+	"github.com/TTK4145-2022-students/project-group-78/lights"
 )
 
-func clParams() (id string, bcastPort int, elevatorPort int) {
-	parser := argparse.NewParser("lifty", "lifty.")
-	idP := parser.String("i", "id", &argparse.Options{Default: "elevator"})
-	bcastPortP := parser.Int("b", "broadcast-port", &argparse.Options{Default: 46952})
-	elevatorPortP := parser.Int("e", "elevator-port", &argparse.Options{Default: 15657})
-
-	err := parser.Parse(os.Args)
-	if err != nil {
-		log.Panic(err)
-	}
-	return *idP, *bcastPortP, *elevatorPortP
+func clParams() (id string, bcastPort int, elevPort int) {
+	idP := flag.String("id", "elevator", "elevator id")
+	bcastPortP := flag.Int("bcastPort", 56985, "broadcast port")
+	elevPortP := flag.Int("elevPort", 15657, "elevator port")
+	flag.Parse()
+	return *idP, *bcastPortP, *elevPortP
 }
 
 func main() {
-	id, bcastPort, elevatorPort := clParams()
-	nodeOutC := make(chan central.CentralState)
-	nodeInC := make(chan central.CentralState)
-	bcastTransmitC, bcastReceiveC := make(chan central.CentralState), make(chan central.CentralState)
+	id, bcastPort, elevPort := clParams()
+	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, 16)
+	stateC := make(chan elevator.State, 16)
+	assignedOrdersC := make(chan elevator.Orders, 16)
+	sendC, receiveC := make(chan central.CentralState), make(chan central.CentralState)
 
-	node.Node(id, elevatorPort, nodeInC, nodeOutC)
-	go bcast.Receiver(bcastPort, bcastReceiveC)
-	go bcast.Transmitter(bcastPort, bcastTransmitC)
+	elevio.Init(fmt.Sprintf("127.0.0.1:%v", elevPort), config.NUM_FLOORS)
+	lights.Clear()
+	go elevator.Elevator(assignedOrdersC, orderCompletedC, stateC)
+	go elevio.PollButtons(newOrderC)
+	go bcast.Transmitter(bcastPort, sendC)
+	go bcast.Receiver(bcastPort, receiveC)
 
-	cs := central.CentralState{Origin: id}
-
+	cs := central.New(id, <-stateC)
 	for {
 		select {
-		case newCs := <-bcastReceiveC:
-			cs = cs.Merge(newCs)
-			nodeInC <- cs
+		case o := <-newOrderC:
+			cs = cs.SetOrder(o, true)
+			sendC <- cs
 
-		case newCs := <-nodeOutC:
+		case o := <-orderCompletedC:
+			cs = cs.SetOrder(o, false)
+			sendC <- cs
+
+		case s := <-stateC:
+			cs.States[id] = s
+			sendC <- cs
+
+		case newCs := <-receiveC:
+			if newCs.Origin == id {
+				continue
+			}
 			cs = cs.Merge(newCs)
-			bcastTransmitC <- cs
 
 		case <-time.After(config.TRANSMIT_INTERVAL):
-			bcastTransmitC <- cs
+			sendC <- cs
+			continue
 		}
+		assignedOrdersC <- assigner.Assigner(cs)
+		lights.Set(cs)
 	}
 }

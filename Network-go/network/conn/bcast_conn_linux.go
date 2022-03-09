@@ -17,7 +17,7 @@ func DialBroadcastUDP(port int) net.PacketConn {
 	if err != nil { fmt.Println("Error: SetSockOpt REUSEADDR:", err) }
 	syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
 	if err != nil { fmt.Println("Error: SetSockOpt BROADCAST:", err) }
-	syscall.Bind(s, &syscall.SockaddrInet4{Port: port, Addr: [4]byte{127, 0, 0, 1}})
+	syscall.Bind(s, &syscall.SockaddrInet4{Port: port}) //, Addr: [4]byte{127, 0, 0, 1}
 	if err != nil { fmt.Println("Error: Bind:", err) }
 
 	f := os.NewFile(uintptr(s), "")

@@ -20,12 +20,14 @@ type Order struct {
 	Time   time.Time
 }
 
-func New(origin string) CentralState {
-	return CentralState{
+func New(origin string, state elevator.State) CentralState {
+	cs := CentralState{
 		Origin:    origin,
 		CabOrders: make(map[string][config.NUM_FLOORS]bool, config.NUM_ELEVATORS),
 		States:    make(map[string]elevator.State, config.NUM_ELEVATORS),
 	}
+	cs.States[origin] = state
+	return cs
 }
 
 func (cs CentralState) SetOrder(be elevio.ButtonEvent, value bool) CentralState {

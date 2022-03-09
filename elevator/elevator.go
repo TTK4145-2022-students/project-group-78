@@ -3,7 +3,6 @@ package elevator
 import (
 	"log"
 
-	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/door"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
@@ -22,7 +21,7 @@ const (
 	Idle               = "idle"
 )
 
-func Elevator(ordersC <-chan [config.NUM_FLOORS][3]bool, completedOrderC chan<- elevio.ButtonEvent, stateC chan<- State) {
+func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, stateC chan<- State) {
 	doorOpenC := make(chan bool)
 	doorClosedC := make(chan bool)
 	floorEnteredC := make(chan int)
@@ -32,14 +31,14 @@ func Elevator(ordersC <-chan [config.NUM_FLOORS][3]bool, completedOrderC chan<- 
 
 	elevio.SetMotorDirection(elevio.MD_Down)
 	state := State{Behaviour: Moving}
-	var orders [config.NUM_FLOORS][3]bool
+	var orders Orders
 
 	for {
 		select {
 		case <-doorClosedC:
 			switch state.Behaviour {
 			case DoorOpen:
-				state.Direction = chooseNextDirection(orders, state.Direction)
+				d, b := nextAction(orders, state.Direction)
 				if state.Direction == elevio.MD_Stop {
 					state.Behaviour = Idle
 				} else {
@@ -83,9 +82,6 @@ func Elevator(ordersC <-chan [config.NUM_FLOORS][3]bool, completedOrderC chan<- 
 			case Moving:
 
 			case DoorOpen:
-				if chooseNextDirection(orders, state.Direction) == elevio.MD_Stop {
-					doorOpenC <- true
-				}
 
 			default:
 				log.Panicf("received new orders while %v", state.Behaviour)
@@ -94,14 +90,55 @@ func Elevator(ordersC <-chan [config.NUM_FLOORS][3]bool, completedOrderC chan<- 
 	}
 }
 
-func chooseNextDirection(orders [config.NUM_FLOORS][3]bool, d elevio.MotorDirection) elevio.MotorDirection {
-	return elevio.MD_Stop
+func nextAction(orders Orders, floor int, d elevio.MotorDirection) (elevio.MotorDirection, Behaviour) {
+	switch d {
+	case elevio.MD_Up:
+		switch {
+		case orders.Above(floor):
+			return elevio.MD_Up, Moving
+
+		case orders.Here(floor):
+			return elevio.MD_Down, DoorOpen
+
+		case orders.Below(floor):
+			return elevio.MD_Down, Moving
+		}
+
+	case elevio.MD_Down:
+		switch {
+		case orders.Below(floor):
+			return elevio.MD_Down, Moving
+
+		case orders.Here(floor):
+			return elevio.MD_Up, DoorOpen
+
+		case orders.Above(floor):
+			return elevio.MD_Up, Moving
+		}
+
+	case elevio.MD_Stop:
+		switch {
+		case orders.Here(floor):
+			return elevio.MD_Stop, DoorOpen
+
+		case orders.Above(floor):
+			return elevio.MD_Up, Moving
+
+		case orders.Below(floor):
+			return elevio.MD_Down, Moving
+		}
+	}
+	return elevio.MD_Stop, Idle
 }
 
-func shouldStop(orders [config.NUM_FLOORS][3]bool, floor int, direction elevio.MotorDirection) bool {
+func shouldStop(orders Orders, floor int, direction elevio.MotorDirection) bool {
 	return false
 }
 
-func clearOrders(orders [config.NUM_FLOORS][3]bool, floor int, direction elevio.MotorDirection, completedOrderC chan<- elevio.ButtonEvent) {
-
+func clearOrders(orders Orders, floor int, completedOrderC chan<- elevio.ButtonEvent) {
+	for bt := 0; bt < 3; bt++ {
+		if orders[floor][bt] {
+			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(bt)}
+		}
+	}
 }

@@ -144,7 +144,23 @@ func clearOrders(orders Orders, floor int, direction elevio.MotorDirection, comp
 		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
 	}
 
-	if orders[floor][direction] {
-		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(direction)}
+	switch direction {
+	case elevio.MD_Up:
+		if orders[floor][elevio.BT_HallUp] {
+			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp}
+		}
+
+	case elevio.MD_Down:
+		if orders[floor][elevio.BT_HallDown] {
+			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown}
+		}
+
+	case elevio.MD_Stop:
+		if orders[floor][elevio.BT_HallUp] {
+			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp}
+		}
+		if orders[floor][elevio.BT_HallDown] {
+			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown}
+		}
 	}
 }

@@ -14,7 +14,7 @@ import (
 func Node(id string, port int, inC <-chan central.CentralState, outC chan<- central.CentralState) {
 	newOrderC := make(chan elevio.ButtonEvent)
 	orderCompletedC, stateC := make(chan elevio.ButtonEvent), make(chan elevator.State)
-	assignedOrdersC := make(chan [config.NUM_FLOORS][3]bool)
+	assignedOrdersC := make(chan elevator.Orders)
 
 	elevio.Init(fmt.Sprintf("127.0.0.1:%v", port), config.NUM_FLOORS)
 	go elevator.Elevator(assignedOrdersC, orderCompletedC, stateC)

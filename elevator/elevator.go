@@ -36,56 +36,49 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 	for {
 		select {
 		case <-doorClosedC:
-			switch state.Behaviour {
-			case DoorOpen:
-				d, b := nextAction(orders, state.Direction)
-				if state.Direction == elevio.MD_Stop {
-					state.Behaviour = Idle
-				} else {
-					elevio.SetMotorDirection(state.Direction)
-					state.Behaviour = Moving
-				}
-				stateC <- state
-
-			default:
+			if state.Behaviour != DoorOpen {
 				log.Panicf("door closed while %v", state.Behaviour)
 			}
-
-		case state.Floor = <-floorEnteredC:
-			switch state.Behaviour {
-			case Moving:
-				if shouldStop(orders, state.Floor, state.Direction) {
-					elevio.SetMotorDirection(elevio.MD_Stop)
-					doorOpenC <- true
-					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
-					state.Behaviour = DoorOpen
-				}
-				stateC <- state
-
-			default:
-				log.Panicf("elevator entered floor while %v", state.Behaviour)
-			}
-
-		case orders = <-ordersC:
+			state.Direction, state.Behaviour = nextAction(orders, state.Floor, state.Direction)
 			switch state.Behaviour {
 			case Idle:
-				state.Direction = chooseNextDirection(orders, state.Direction)
-				if state.Direction == elevio.MD_Stop {
-					doorOpenC <- true
-					state.Behaviour = DoorOpen
-				} else {
-					elevio.SetMotorDirection(state.Direction)
-					state.Behaviour = Moving
-				}
-				stateC <- state
+			case DoorOpen:
+				doorOpenC <- true
+				clearOrders(orders, state.Floor, completedOrderC)
 
 			case Moving:
-
-			case DoorOpen:
-
-			default:
-				log.Panicf("received new orders while %v", state.Behaviour)
+				elevio.SetMotorDirection(state.Direction)
 			}
+			stateC <- state
+
+		case state.Floor = <-floorEnteredC:
+			if state.Behaviour != Moving {
+				log.Panicf("elevator entered floor while %v", state.Behaviour)
+
+			}
+			if shouldStop(orders, state.Floor, state.Direction) {
+				elevio.SetMotorDirection(elevio.MD_Stop)
+				doorOpenC <- true
+				clearOrders(orders, state.Floor, completedOrderC)
+				state.Behaviour = DoorOpen
+			}
+			stateC <- state
+
+		case orders = <-ordersC:
+			if state.Behaviour != Idle {
+				continue
+			}
+
+			state.Direction, state.Behaviour = nextAction(orders, state.Floor, state.Direction)
+			if state.Direction == elevio.MD_Stop {
+				doorOpenC <- true
+				state.Behaviour = DoorOpen
+			} else {
+				elevio.SetMotorDirection(state.Direction)
+				state.Behaviour = Moving
+			}
+			stateC <- state
+
 		}
 	}
 }
@@ -132,7 +125,18 @@ func nextAction(orders Orders, floor int, d elevio.MotorDirection) (elevio.Motor
 }
 
 func shouldStop(orders Orders, floor int, direction elevio.MotorDirection) bool {
-	return false
+	switch direction {
+	case elevio.MD_Down:
+		return orders[floor][elevio.BT_HallDown] || orders[floor][elevio.BT_Cab] || !orders.Below(floor)
+	case elevio.MD_Up:
+		return orders[floor][elevio.BT_HallUp] || orders[floor][elevio.BT_Cab] || !orders.Above(floor)
+	case elevio.MD_Stop:
+		log.Panicf("Direction is  %v, when expected to be up or down", direction)
+		return true
+	default:
+		log.Panicf("Direction is corrupted %v", direction)
+		return false
+	}
 }
 
 func clearOrders(orders Orders, floor int, completedOrderC chan<- elevio.ButtonEvent) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/config"
+	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/TTK4145-2022-students/project-group-78/elevio"
 )
 
@@ -44,7 +45,7 @@ func newHraInput(cs central.CentralState) hraInput {
 	return hrai
 }
 
-func hallRequestAssigner(cs central.CentralState) map[string][config.NUM_FLOORS][3]bool {
+func hallRequestAssigner(cs central.CentralState) map[string]elevator.Orders {
 	b, err := json.Marshal(newHraInput(cs))
 	if err != nil {
 		log.Panic(err)
@@ -55,7 +56,7 @@ func hallRequestAssigner(cs central.CentralState) map[string][config.NUM_FLOORS]
 		log.Panic(err)
 	}
 
-	orders := make(map[string][config.NUM_FLOORS][3]bool)
+	orders := make(map[string]elevator.Orders)
 	err = json.Unmarshal(output, &orders)
 	if err != nil {
 		log.Panic(err)
@@ -63,6 +64,6 @@ func hallRequestAssigner(cs central.CentralState) map[string][config.NUM_FLOORS]
 	return orders
 }
 
-func Assigner(cs central.CentralState) [config.NUM_FLOORS][3]bool {
+func Assigner(cs central.CentralState) elevator.Orders {
 	return hallRequestAssigner(cs)[cs.Origin]
 }

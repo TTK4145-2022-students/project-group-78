@@ -44,7 +44,7 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 			case Idle:
 			case DoorOpen:
 				doorOpenC <- true
-				clearOrders(orders, state.Floor, completedOrderC)
+				clearOrders(orders, state.Floor, state.Direction, completedOrderC)
 
 			case Moving:
 				elevio.SetMotorDirection(state.Direction)
@@ -59,7 +59,7 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 			if shouldStop(orders, state.Floor, state.Direction) {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				doorOpenC <- true
-				clearOrders(orders, state.Floor, completedOrderC)
+				clearOrders(orders, state.Floor, state.Direction, completedOrderC)
 				state.Behaviour = DoorOpen
 			}
 			stateC <- state
@@ -139,10 +139,12 @@ func shouldStop(orders Orders, floor int, direction elevio.MotorDirection) bool 
 	}
 }
 
-func clearOrders(orders Orders, floor int, completedOrderC chan<- elevio.ButtonEvent) {
-	for bt := 0; bt < 3; bt++ {
-		if orders[floor][bt] {
-			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(bt)}
-		}
+func clearOrders(orders Orders, floor int, direction elevio.MotorDirection, completedOrderC chan<- elevio.ButtonEvent) {
+	if orders[floor][elevio.BT_Cab] {
+		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
+	}
+
+	if orders[floor][direction] {
+		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.ButtonType(direction)}
 	}
 }

@@ -15,15 +15,15 @@ import (
 
 func clParams() (id string, bcastPort int, elevatorPort int) {
 	parser := argparse.NewParser("lifty", "lifty.")
-	id = *parser.String("i", "id", &argparse.Options{Default: "elevator"})
-	bcastPort = *parser.Int("b", "broadcast-port", &argparse.Options{Default: 46952})
-	elevatorPort = *parser.Int("e", "elevator-port", &argparse.Options{Default: 15657})
+	idP := parser.String("i", "id", &argparse.Options{Default: "elevator"})
+	bcastPortP := parser.Int("b", "broadcast-port", &argparse.Options{Default: 46952})
+	elevatorPortP := parser.Int("e", "elevator-port", &argparse.Options{Default: 15657})
 
 	err := parser.Parse(os.Args)
 	if err != nil {
 		log.Panic(err)
 	}
-	return
+	return *idP, *bcastPortP, *elevatorPortP
 }
 
 func main() {

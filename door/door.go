@@ -22,16 +22,19 @@ func Door(openC <-chan bool, closedC chan<- bool) {
 		case obstructed = <-obstructionC:
 			if !obstructed && doorOpen {
 				elevio.SetDoorOpenLamp(false)
+				doorOpen = false
 				closedC <- true
 			}
 
 		case <-openC:
 			elevio.SetDoorOpenLamp(true)
+			doorOpen = true
 			timer = time.NewTimer(config.DOOR_OPEN_TIME)
 
 		case <-timer.C:
 			if !obstructed && doorOpen {
 				elevio.SetDoorOpenLamp(false)
+				doorOpen = false
 				closedC <- true
 			}
 		}

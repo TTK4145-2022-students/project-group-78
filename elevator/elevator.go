@@ -30,7 +30,7 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 	go elevio.PollFloorSensor(floorEnteredC)
 
 	elevio.SetMotorDirection(elevio.MD_Down)
-	state := State{Behaviour: Moving}
+	state := State{Behaviour: Moving, Direction: elevio.MD_Down}
 	var orders Orders
 
 	for {

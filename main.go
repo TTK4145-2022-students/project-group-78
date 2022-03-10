@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/assigner"
@@ -54,14 +53,12 @@ func main() {
 			sendC <- cs
 
 		case newCs := <-receiveC:
-			log.Print("received", newCs.Origin)
 			if newCs.Origin == id {
 				continue
 			}
 			cs = cs.Merge(newCs)
 
 		case <-timer.C:
-			log.Print("sent", cs.Origin, id)
 			sendC <- cs
 			timer.Reset(config.TRANSMIT_INTERVAL)
 			continue

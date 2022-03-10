@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/config"
-	"github.com/TTK4145-2022-students/project-group-78/elevio"
+	"github.com/vetleras/driver-go/elevio"
 )
 
 func Door(openC <-chan bool, closedC chan<- bool) {

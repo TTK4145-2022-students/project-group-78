@@ -30,7 +30,24 @@ func New(origin string, state elevator.State) CentralState {
 	return cs
 }
 
+func (cs CentralState) deepCopy() CentralState {
+	copiedCabOrders := make(map[string][config.NUM_FLOORS]bool)
+	for id, values := range cs.CabOrders {
+		copiedCabOrders[id] = values
+	}
+	cs.CabOrders = copiedCabOrders
+
+	copiedStates := make(map[string]elevator.State)
+	for id, state := range cs.States {
+		copiedStates[id] = state
+	}
+	cs.States = copiedStates
+
+	return cs
+}
+
 func (cs CentralState) SetOrder(be elevio.ButtonEvent, value bool) CentralState {
+	cs = cs.deepCopy()
 	if be.Button == elevio.BT_Cab {
 		cabOrders := cs.CabOrders[cs.Origin]
 		cabOrders[be.Floor] = value
@@ -44,6 +61,7 @@ func (cs CentralState) SetOrder(be elevio.ButtonEvent, value bool) CentralState 
 
 // Merge newCs onto cs
 func (cs CentralState) Merge(newCs CentralState) CentralState {
+	cs = cs.deepCopy()
 	cs.States[newCs.Origin] = newCs.States[newCs.Origin]
 	cs.CabOrders[newCs.Origin] = newCs.CabOrders[newCs.Origin]
 	for f := 0; f < len(cs.HallOrders); f++ {

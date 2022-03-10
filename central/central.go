@@ -23,8 +23,8 @@ type Order struct {
 func New(origin string, state elevator.State) CentralState {
 	cs := CentralState{
 		Origin:    origin,
-		CabOrders: make(map[string][config.NUM_FLOORS]bool, config.NUM_ELEVATORS),
-		States:    make(map[string]elevator.State, config.NUM_ELEVATORS),
+		CabOrders: make(map[string][config.NUM_FLOORS]bool),
+		States:    make(map[string]elevator.State),
 	}
 	cs.States[origin] = state
 	return cs

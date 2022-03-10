@@ -4,6 +4,7 @@ import (
 	"Network-go/network/bcast"
 	"flag"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/TTK4145-2022-students/project-group-78/assigner"
@@ -37,6 +38,7 @@ func main() {
 	go bcast.Receiver(bcastPort, receiveC)
 
 	cs := central.New(id, <-stateC)
+	timer := time.NewTimer(config.TRANSMIT_INTERVAL)
 	for {
 		select {
 		case o := <-newOrderC:
@@ -52,13 +54,16 @@ func main() {
 			sendC <- cs
 
 		case newCs := <-receiveC:
+			log.Print("received", newCs.Origin)
 			if newCs.Origin == id {
 				continue
 			}
 			cs = cs.Merge(newCs)
 
-		case <-time.After(config.TRANSMIT_INTERVAL):
+		case <-timer.C:
+			log.Print("sent", cs.Origin, id)
 			sendC <- cs
+			timer.Reset(config.TRANSMIT_INTERVAL)
 			continue
 		}
 		assignedOrdersC <- assigner.Assigner(cs)

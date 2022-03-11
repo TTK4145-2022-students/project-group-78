@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/TTK4145-2022-students/Network-go-group-78/network/bcast"
+	"github.com/TTK4145-2022-students/driver-go-group-78/elevio"
 	"github.com/TTK4145-2022-students/project-group-78/assigner"
 	"github.com/TTK4145-2022-students/project-group-78/central"
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/TTK4145-2022-students/project-group-78/lights"
-	"github.com/vetleras/Network-go/network/bcast"
-	"github.com/vetleras/driver-go/elevio"
 )
 
 func clParams() (id string, bcastPort int, elevPort int) {

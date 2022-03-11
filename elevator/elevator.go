@@ -3,9 +3,9 @@ package elevator
 import (
 	"log"
 
+	"github.com/TTK4145-2022-students/driver-go-group-78/elevio"
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/door"
-	"github.com/vetleras/driver-go/elevio"
 )
 
 type State struct {

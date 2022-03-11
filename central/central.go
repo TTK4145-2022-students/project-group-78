@@ -3,9 +3,9 @@ package central
 import (
 	"time"
 
+	"github.com/TTK4145-2022-students/driver-go-group-78/elevio"
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
-	"github.com/vetleras/driver-go/elevio"
 )
 
 type CentralState struct {

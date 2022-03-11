@@ -1,3 +1,7 @@
+github.com/TTK4145-2022-students/Network-go-group-78 v0.0.0-20220311120107-6dcd04a7e74b h1:cIc3KrOjoBL3kljsRBDiAXCM7VnPmIOfQbzVDVZMDhg=
+github.com/TTK4145-2022-students/Network-go-group-78 v0.0.0-20220311120107-6dcd04a7e74b/go.mod h1:wPSvYKi6Cp8ozV4H0qt6VnmJOjzSMTzhFjd6TOHWI5I=
+github.com/TTK4145-2022-students/driver-go-group-78 v0.0.0-20220311113927-91ee6396bc17 h1:sAXKHQ5h9EW4CNQLCf6+Yn0v2urpr1LlNqp1hNtvxck=
+github.com/TTK4145-2022-students/driver-go-group-78 v0.0.0-20220311113927-91ee6396bc17/go.mod h1:cWIPFJ8NtqkbRBJBBTbgkzMidEt0BezwNY/p2B0MTeQ=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
@@ -5,10 +9,6 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/vetleras/Network-go v0.0.0-20220310185336-8e4587524095 h1:1vtxs2oYJ1BxB26/dBxeK9nlZhnTfTBBp4lv7jslv9k=
-github.com/vetleras/Network-go v0.0.0-20220310185336-8e4587524095/go.mod h1:DTjYXjvG9iZjfFqG8gJGmHsbr9+BsryURYiv4EMGoms=
-github.com/vetleras/driver-go v0.0.0-20220310191343-7c5302db7f02 h1:SMFBID8B7w48sd4Zyv2k+HntSMxgWCbUlQY0Ng/1heE=
-github.com/vetleras/driver-go v0.0.0-20220310191343-7c5302db7f02/go.mod h1:sldaboHvJrFWBbORTzi91J4YLT5258NNCGaSnVaMkug=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c h1:dUUwHk2QECo/6vqA44rthZ8ie2QXMNeKRTHCNY2nXvo=

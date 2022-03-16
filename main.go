@@ -66,7 +66,7 @@ func main() {
 		}
 		assignedOrdersC <- assigner.Assigner(cs)
 		go func() {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(config.LIGHT_DELAY)
 			lights.Set(cs)
 		}()
 

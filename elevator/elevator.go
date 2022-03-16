@@ -23,8 +23,8 @@ const (
 )
 
 func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, stateC chan<- State) {
-	doorOpenC := make(chan bool, config.CHAN_SIZE)
-	doorClosedC := make(chan bool, config.CHAN_SIZE)
+	doorOpenC := make(chan bool, config.ChanSize)
+	doorClosedC := make(chan bool, config.ChanSize)
 	floorEnteredC := make(chan int)
 
 	go door.Door(doorOpenC, doorClosedC)

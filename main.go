@@ -12,6 +12,7 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/TTK4145-2022-students/project-group-78/lights"
+	"github.com/rapidloop/skv"
 )
 
 func clParams() (id int, bcastPort int, elevPort int) {
@@ -24,20 +25,28 @@ func clParams() (id int, bcastPort int, elevPort int) {
 
 func main() {
 	id, bcastPort, elevPort := clParams()
-	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, 16)
-	stateC := make(chan elevator.State, 16)
-	assignedOrdersC := make(chan elevator.Orders, 16)
+	assignedOrdersC := make(chan elevator.Orders, config.ChanSize)
+	stateC := make(chan elevator.State, config.ChanSize)
+	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, config.ChanSize)	
 	sendC, receiveC := make(chan central.CentralState), make(chan central.CentralState)
 
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", elevPort), config.NUM_FLOORS)
+	elevio.Init(fmt.Sprintf("127.0.0.1:%v", elevPort), config.NumFloors)
 	lights.Clear()
 	go elevator.Elevator(assignedOrdersC, orderCompletedC, stateC)
 	go elevio.PollButtons(newOrderC)
 	go bcast.Transmitter(bcastPort, sendC)
 	go bcast.Receiver(bcastPort, receiveC)
 
+	store, err := skv.Open("db.db")
+	if err != nil {
+		panic(err)
+	}
 	cs := central.New(id, <-stateC)
-	timer := time.NewTimer(config.TRANSMIT_INTERVAL)
+	if err = store.Get("cs", &cs); err != nil && err != skv.ErrNotFound {
+		panic(err)
+	}
+
+	timer := time.NewTimer(config.TransmitInterval)
 	for {
 		select {
 		case o := <-newOrderC:
@@ -61,12 +70,15 @@ func main() {
 
 		case <-timer.C:
 			sendC <- cs
-			timer.Reset(config.TRANSMIT_INTERVAL)
+			timer.Reset(config.TransmitInterval)
+		}
 
+		if err = store.Put("cs", cs); err != nil {
+			panic(err)
 		}
 		assignedOrdersC <- assigner.Assigner(cs)
 		go func() {
-			time.Sleep(config.LIGHT_DELAY)
+			time.Sleep(config.LightDelay)
 			lights.Set(cs)
 		}()
 	}

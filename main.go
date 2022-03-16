@@ -15,7 +15,7 @@ import (
 )
 
 func clParams() (id int, bcastPort int, elevPort int) {
-	idP := flag.Int("id", 1, "elevator id")
+	idP := flag.Int("id", 0, "elevator id")
 	bcastPortP := flag.Int("bcastPort", 56985, "broadcast port")
 	elevPortP := flag.Int("elevPort", 15657, "elevator port")
 	flag.Parse()
@@ -62,7 +62,7 @@ func main() {
 		case <-timer.C:
 			sendC <- cs
 			timer.Reset(config.TRANSMIT_INTERVAL)
-			continue
+
 		}
 		assignedOrdersC <- assigner.Assigner(cs)
 		go func() {

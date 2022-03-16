@@ -15,7 +15,7 @@ import (
 )
 
 func clParams() (id int, bcastPort int, elevPort int) {
-	idP := flag.Int("id", 0, "elevator id")
+	idP := flag.Int("id", 1, "elevator id")
 	bcastPortP := flag.Int("bcastPort", 56985, "broadcast port")
 	elevPortP := flag.Int("elevPort", 15657, "elevator port")
 	flag.Parse()
@@ -41,11 +41,11 @@ func main() {
 	for {
 		select {
 		case o := <-newOrderC:
-			cs = cs.SetOrder(o, true)
+			cs = cs.AddOrder(o)
 			sendC <- cs
 
 		case o := <-orderCompletedC:
-			cs = cs.SetOrder(o, false)
+			cs = cs.RemoveOrder(o)
 			sendC <- cs
 
 		case s := <-stateC:
@@ -69,6 +69,5 @@ func main() {
 			time.Sleep(config.LIGHT_DELAY)
 			lights.Set(cs)
 		}()
-
 	}
 }

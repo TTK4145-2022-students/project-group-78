@@ -14,12 +14,12 @@ type State struct {
 	Direction elevio.MotorDirection
 }
 
-type Behaviour string
+type Behaviour int
 
 const (
-	DoorOpen Behaviour = "doorOpen"
-	Moving             = "moving"
-	Idle               = "idle"
+	Idle Behaviour = iota
+	DoorOpen
+	Moving
 )
 
 func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, stateC chan<- State) {

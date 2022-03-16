@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os/exec"
+	"strconv"
 
 	"github.com/TTK4145-2022-students/driver-go-group-78/elevio"
 	"github.com/TTK4145-2022-students/project-group-78/central"
@@ -23,22 +24,25 @@ type hraState struct {
 	CabRequests [config.NUM_FLOORS]bool `json:"cabRequests"`
 }
 
-func elevioMD2string(d elevio.MotorDirection) string {
+func elevioMd2String(d elevio.MotorDirection) string {
 	return map[elevio.MotorDirection]string{elevio.MD_Up: "up", elevio.MD_Down: "down", elevio.MD_Stop: "stop"}[d]
+}
 
+func elevatorBehaviour2String(b elevator.Behaviour) string {
+	return map[elevator.Behaviour]string{elevator.Idle: "idle", elevator.DoorOpen: "doorOpen", elevator.Moving: "moving"}[b]
 }
 
 func newHraInput(cs central.CentralState) hraInput {
 	hrai := hraInput{}
-	for i := range cs.HallOrders {
-		hrai.HallRequests[i] = [2]bool{cs.HallOrders[i][0].Active, cs.HallOrders[i][1].Active}
+	for f := range cs.HallOrders {
+		hrai.HallRequests[f] = [2]bool{cs.HallOrders[f][0].Active, cs.HallOrders[f][1].Active}
 	}
 	hrai.States = make(map[string]hraState)
 	for id, state := range cs.States {
-		hrai.States[id] = hraState{
-			Behaviour:   string(state.Behaviour),
+		hrai.States[strconv.Itoa(id)] = hraState{
+			Behaviour:   elevatorBehaviour2String(state.Behaviour),
 			Floor:       state.Floor,
-			Direction:   elevioMD2string(state.Direction),
+			Direction:   elevioMd2String(state.Direction),
 			CabRequests: cs.CabOrders[id],
 		}
 	}
@@ -65,5 +69,5 @@ func hallRequestAssigner(cs central.CentralState) map[string]elevator.Orders {
 }
 
 func Assigner(cs central.CentralState) elevator.Orders {
-	return hallRequestAssigner(cs)[cs.Origin]
+	return hallRequestAssigner(cs)[strconv.Itoa(cs.Origin)]
 }

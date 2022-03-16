@@ -14,8 +14,8 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/lights"
 )
 
-func clParams() (id string, bcastPort int, elevPort int) {
-	idP := flag.String("id", "elevator", "elevator id")
+func clParams() (id int, bcastPort int, elevPort int) {
+	idP := flag.Int("id", 0, "elevator id")
 	bcastPortP := flag.Int("bcastPort", 56985, "broadcast port")
 	elevPortP := flag.Int("elevPort", 15657, "elevator port")
 	flag.Parse()
@@ -64,6 +64,10 @@ func main() {
 			continue
 		}
 		assignedOrdersC <- assigner.Assigner(cs)
-		lights.Set(cs)
+		go func() {
+			time.Sleep(100*time.Millisecond)
+			lights.Set(cs)
+		}()
+		
 	}
 }

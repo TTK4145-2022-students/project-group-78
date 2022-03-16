@@ -30,7 +30,7 @@ func New(origin int, state elevator.State) (cs CentralState) {
 func (cs CentralState) SetOrder(be elevio.ButtonEvent, value bool) CentralState {
 	if be.Button == elevio.BT_Cab {
 		cs.CabOrders[cs.Origin][be.Floor] = value
-	} else {
+	} else if !cs.HallOrders[be.Floor][be.Button].Active {
 		o := Order{value, time.Now()}
 		cs.HallOrders[be.Floor][be.Button] = o
 	}

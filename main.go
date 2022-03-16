@@ -50,6 +50,7 @@ func main() {
 
 		case s := <-stateC:
 			cs.States[id] = s
+			cs.LastUpdated[id] = time.Now()
 			sendC <- cs
 
 		case newCs := <-receiveC:
@@ -65,9 +66,9 @@ func main() {
 		}
 		assignedOrdersC <- assigner.Assigner(cs)
 		go func() {
-			time.Sleep(100*time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			lights.Set(cs)
 		}()
-		
+
 	}
 }

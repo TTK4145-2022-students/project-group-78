@@ -77,6 +77,8 @@ func main() {
 			panic(err)
 		}
 		assignedOrdersC <- assigner.Assigner(cs)
+		// Delay lights so that we ensure that sufficent attemps have been done to send new orders to the other nodes.
+		// Orders are anyway stored in persistant storage, so no orders can be lost anyway, but this is to ensure that the spec is satisfied
 		go func() {
 			time.Sleep(config.LightDelay)
 			lights.Set(cs)

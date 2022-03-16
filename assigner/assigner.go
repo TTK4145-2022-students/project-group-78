@@ -72,12 +72,18 @@ func hallRequestAssigner(hrai hraInput) map[string]elevator.Orders {
 func Assigner(cs central.CentralState) elevator.Orders {
 	hrai := newHraInput(cs)
 
-	loopern(cs, hrai, -1)
-
+	for c := 0; ; c++ {
+		id, ok = faultyElevator(hrai, c*config.ORDER_TIMEOUT, cs.Origin)
+		if ok {
+			delete(hrai.States, id)
+		} else {
+			break
+		}
+	}
 	return hallRequestAssigner(hrai)[strconv.Itoa(cs.Origin)]
 }
 
-func loopern(cs central.CentralState, hrai hraInput, ld int) {
+func faultyElevator(cs central.CentralState, hrai hraInput, ld int) {
 	for e := 0; e < config.NUM_ELEVS; e++ {
 		orders := hallRequestAssigner(hrai)[strconv.Itoa(e)]
 		if e == cs.Origin || ld == e {
@@ -90,7 +96,7 @@ func loopern(cs central.CentralState, hrai hraInput, ld int) {
 						(time.Since(cs.LastUpdated[e]) > config.ELEV_TIMEOUT) {
 						// The elevator is not behaving correct, drop it
 						delete(hrai.States, strconv.Itoa(e))
-						loopern(cs, hrai, e)
+						faultyElevator(cs, hrai, e)
 					}
 				}
 			}

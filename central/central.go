@@ -41,8 +41,8 @@ func (cs CentralState) SetOrder(be elevio.ButtonEvent, value bool) CentralState 
 func (cs CentralState) Merge(newCs CentralState) CentralState {
 	cs.States[newCs.Origin] = newCs.States[newCs.Origin]
 	cs.CabOrders[newCs.Origin] = newCs.CabOrders[newCs.Origin]
-	for f := 0; f < config.NUM_FLOORS; f++ {
-		for bt := 0; bt < len(cs.HallOrders[f]); bt++ {
+	for f := range cs.HallOrders {
+		for bt := range cs.HallOrders[f] {
 			if cs.HallOrders[f][bt].Time.Before(newCs.HallOrders[f][bt].Time) {
 				cs.HallOrders[f][bt] = newCs.HallOrders[f][bt]
 			}

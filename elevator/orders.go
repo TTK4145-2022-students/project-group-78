@@ -11,7 +11,7 @@ type Orders [config.NUM_FLOORS][3]bool
 
 func (o Orders) Above(floor int) bool {
 	for f := floor + 1; f < len(o); f++ {
-		for bt := 0; bt < 3; bt++ {
+		for bt := range o[f] {
 			if o[f][bt] {
 				return true
 			}
@@ -22,7 +22,7 @@ func (o Orders) Above(floor int) bool {
 
 func (o Orders) Below(floor int) bool {
 	for f := 0; f < floor; f++ {
-		for bt := 0; bt < 3; bt++ {
+		for bt := range o[f] {
 			if o[f][bt] {
 				return true
 			}
@@ -32,7 +32,7 @@ func (o Orders) Below(floor int) bool {
 }
 
 func (o Orders) Here(f int) bool {
-	for bt := 0; bt < 3; bt++ {
+	for bt := range o[f] {
 		if o[f][bt] {
 			return true
 		}

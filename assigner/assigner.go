@@ -73,9 +73,9 @@ func Assigner(cs central.CentralState) elevator.Orders {
 	hrai := newHraInput(cs)
 
 	for c := 0; ; c++ {
-		id, ok = faultyElevator(hrai, c*config.ORDER_TIMEOUT, cs.Origin)
+		e, ok := otherFaultyElevator(hrai, time.Duration(c)*config.ORDER_TIMEOUT, cs)
 		if ok {
-			delete(hrai.States, id)
+			delete(hrai.States, strconv.Itoa(e))
 		} else {
 			break
 		}
@@ -83,23 +83,27 @@ func Assigner(cs central.CentralState) elevator.Orders {
 	return hallRequestAssigner(hrai)[strconv.Itoa(cs.Origin)]
 }
 
-func faultyElevator(cs central.CentralState, hrai hraInput, ld int) {
-	for e := 0; e < config.NUM_ELEVS; e++ {
-		orders := hallRequestAssigner(hrai)[strconv.Itoa(e)]
-		if e == cs.Origin || ld == e {
+func otherFaultyElevator(hrai hraInput, extraOrderTimeOut time.Duration, cs central.CentralState) (e int, ok bool) {
+	for elevator, orders := range hallRequestAssigner(hrai) {
+		e, err := strconv.Atoi(elevator)
+		if err != nil {
+			log.Panic(err)
+		}
+		if e == cs.Origin {
 			continue
 		}
 		for f := range orders {
 			for btn := range orders[f] {
-				if orders[f][btn] && btn != elevio.BT_Cab {
-					if (time.Since(cs.HallOrders[f][elevio.BT_HallUp].Time) > config.ORDER_TIMEOUT) &&
-						(time.Since(cs.LastUpdated[e]) > config.ELEV_TIMEOUT) {
-						// The elevator is not behaving correct, drop it
-						delete(hrai.States, strconv.Itoa(e))
-						faultyElevator(cs, hrai, e)
-					}
+				// Checks if elevator has an order and if it does not move, mark it as faulty
+				if orders[f][btn] &&
+					btn != elevio.BT_Cab &&
+					time.Since(cs.HallOrders[f][elevio.BT_HallUp].Time) > (config.ORDER_TIMEOUT+extraOrderTimeOut) &&
+					time.Since(cs.LastUpdated[e]) > config.ELEV_TIMEOUT {
+					return e, true
+
 				}
 			}
 		}
 	}
+	return
 }

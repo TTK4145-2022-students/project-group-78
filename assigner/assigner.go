@@ -5,6 +5,7 @@ import (
 	"log"
 	"os/exec"
 	"strconv"
+	"time"
 
 	"github.com/TTK4145-2022-students/driver-go-group-78/elevio"
 	"github.com/TTK4145-2022-students/project-group-78/central"
@@ -49,8 +50,8 @@ func newHraInput(cs central.CentralState) hraInput {
 	return hrai
 }
 
-func hallRequestAssigner(cs central.CentralState) map[string]elevator.Orders {
-	b, err := json.Marshal(newHraInput(cs))
+func hallRequestAssigner(hrai hraInput) map[string]elevator.Orders {
+	b, err := json.Marshal(hrai)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -69,5 +70,30 @@ func hallRequestAssigner(cs central.CentralState) map[string]elevator.Orders {
 }
 
 func Assigner(cs central.CentralState) elevator.Orders {
-	return hallRequestAssigner(cs)[strconv.Itoa(cs.Origin)]
+	hrai := newHraInput(cs)
+
+	loopern(cs, hrai, -1)
+
+	return hallRequestAssigner(hrai)[strconv.Itoa(cs.Origin)]
+}
+
+func loopern(cs central.CentralState, hrai hraInput, ld int) {
+	for e := 0; e < config.NUM_ELEVS; e++ {
+		orders := hallRequestAssigner(hrai)[strconv.Itoa(e)]
+		if e == cs.Origin || ld == e {
+			continue
+		}
+		for f := range orders {
+			for btn := range orders[f] {
+				if orders[f][btn] && btn != elevio.BT_Cab {
+					if (time.Since(cs.HallOrders[f][elevio.BT_HallUp].Time) > config.ORDER_TIMEOUT) &&
+						(time.Since(cs.LastUpdated[e]) > config.ELEV_TIMEOUT) {
+						// The elevator is not behaving correct, drop it
+						delete(hrai.States, strconv.Itoa(e))
+						loopern(cs, hrai, e)
+					}
+				}
+			}
+		}
+	}
 }

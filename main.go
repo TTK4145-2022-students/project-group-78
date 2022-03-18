@@ -23,7 +23,7 @@ func main() {
 	id := *idP
 	assignedOrdersC := make(chan elevator.Orders, config.ChanSize)
 	stateC := make(chan elevator.State, config.ChanSize)
-	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, config.ChanSize)	
+	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, config.ChanSize)
 	sendC, receiveC := make(chan central.CentralState), make(chan central.CentralState)
 
 	elevio.Init(fmt.Sprintf("127.0.0.1:%v", *port), config.NumFloors)
@@ -43,7 +43,7 @@ func main() {
 	}
 	cs.Origin = id
 
-	timer := time.NewTimer(config.TransmitInterval)
+	ticker := time.NewTicker(config.TransmitInterval)
 	for {
 		select {
 		case o := <-newOrderC:
@@ -65,9 +65,8 @@ func main() {
 			}
 			cs = cs.Merge(newCs)
 
-		case <-timer.C:
+		case <-ticker.C:
 			sendC <- cs
-			timer.Reset(config.TransmitInterval)
 		}
 
 		if err = store.Put("cs", cs); err != nil {

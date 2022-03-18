@@ -9,7 +9,7 @@ import (
 
 type Orders [config.NumFloors][3]bool
 
-func (o Orders) Above(floor int) bool {
+func (o Orders) above(floor int) bool {
 	for f := floor + 1; f < len(o); f++ {
 		for bt := range o[f] {
 			if o[f][bt] {
@@ -20,7 +20,7 @@ func (o Orders) Above(floor int) bool {
 	return false
 }
 
-func (o Orders) Below(floor int) bool {
+func (o Orders) below(floor int) bool {
 	for f := 0; f < floor; f++ {
 		for bt := range o[f] {
 			if o[f][bt] {
@@ -31,7 +31,7 @@ func (o Orders) Below(floor int) bool {
 	return false
 }
 
-func (o Orders) Here(f int) bool {
+func (o Orders) here(f int) bool {
 	for bt := range o[f] {
 		if o[f][bt] {
 			return true
@@ -44,37 +44,37 @@ func nextAction(orders Orders, floor int, d elevio.MotorDirection) (elevio.Motor
 	switch d {
 	case elevio.MD_Up:
 		switch {
-		case orders.Above(floor):
+		case orders.above(floor):
 			return elevio.MD_Up, Moving
 
-		case orders.Here(floor):
+		case orders.here(floor):
 			return elevio.MD_Down, DoorOpen
 
-		case orders.Below(floor):
+		case orders.below(floor):
 			return elevio.MD_Down, Moving
 		}
 
 	case elevio.MD_Down:
 		switch {
-		case orders.Below(floor):
+		case orders.below(floor):
 			return elevio.MD_Down, Moving
 
-		case orders.Here(floor):
+		case orders.here(floor):
 			return elevio.MD_Up, DoorOpen
 
-		case orders.Above(floor):
+		case orders.above(floor):
 			return elevio.MD_Up, Moving
 		}
 
 	case elevio.MD_Stop:
 		switch {
-		case orders.Here(floor):
+		case orders.here(floor):
 			return elevio.MD_Stop, DoorOpen
 
-		case orders.Above(floor):
+		case orders.above(floor):
 			return elevio.MD_Up, Moving
 
-		case orders.Below(floor):
+		case orders.below(floor):
 			return elevio.MD_Down, Moving
 		}
 	}
@@ -84,9 +84,9 @@ func nextAction(orders Orders, floor int, d elevio.MotorDirection) (elevio.Motor
 func shouldStop(orders Orders, floor int, direction elevio.MotorDirection) bool {
 	switch direction {
 	case elevio.MD_Down:
-		return orders[floor][elevio.BT_HallDown] || orders[floor][elevio.BT_Cab] || !orders.Below(floor)
+		return orders[floor][elevio.BT_HallDown] || orders[floor][elevio.BT_Cab] || !orders.below(floor)
 	case elevio.MD_Up:
-		return orders[floor][elevio.BT_HallUp] || orders[floor][elevio.BT_Cab] || !orders.Above(floor)
+		return orders[floor][elevio.BT_HallUp] || orders[floor][elevio.BT_Cab] || !orders.above(floor)
 	case elevio.MD_Stop:
 		panic("elevator: direction should not be stop")
 	default:
@@ -101,14 +101,14 @@ func clearOrders(orders Orders, floor int, direction elevio.MotorDirection, comp
 
 	switch direction {
 	case elevio.MD_Up:
-		if !orders.Above(floor) && !orders[floor][elevio.BT_HallUp] && orders[floor][elevio.BT_HallDown] {
+		if !orders.above(floor) && !orders[floor][elevio.BT_HallUp] && orders[floor][elevio.BT_HallDown] {
 			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown}
 		} else if orders[floor][elevio.BT_HallUp] {
 			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp}
 		}
 
 	case elevio.MD_Down:
-		if !orders.Above(floor) && !orders[floor][elevio.BT_HallDown] && orders[floor][elevio.BT_HallUp] {
+		if !orders.above(floor) && !orders[floor][elevio.BT_HallDown] && orders[floor][elevio.BT_HallUp] {
 			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp}
 		} else if orders[floor][elevio.BT_HallDown] {
 			completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown}

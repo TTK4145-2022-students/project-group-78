@@ -75,9 +75,9 @@ func hallRequestAssigner(hrai hraInput) map[string]elevator.Orders {
 
 func Assigner(cs central.CentralState) elevator.Orders {
 	hrai := newHraInput(cs)
-	for c := 0; ; c++ {
+	for timeout := config.OrderTimout; ; timeout += config.OrderTimout {
 		// Increase order timeout for each removed elevator, so that not multiple elevators times out the same order
-		key, faulty := findOtherFaultyElevator(cs, hrai, time.Duration(c+1)*config.OrderTimout)
+		key, faulty := findOtherFaultyElevator(cs, hrai, timeout)
 		if faulty {
 			delete(hrai.States, key)
 		} else {
@@ -88,15 +88,15 @@ func Assigner(cs central.CentralState) elevator.Orders {
 
 func findOtherFaultyElevator(cs central.CentralState, hrai hraInput, orderTimeout time.Duration) (key string, faulty bool) {
 	for key, orders := range hallRequestAssigner(hrai) {
-		if key == strconv.Itoa(cs.Origin) {
+		id, err := strconv.Atoi(key)
+		if err != nil {
+			panic(err)
+		}
+		if id == cs.Origin {
 			continue
 		}
 		for f := range orders {
 			for bt := range orders[f] {
-				id, err := strconv.Atoi(key)
-				if err != nil {
-					panic(err)
-				}
 				if orders[f][bt] &&
 					bt != elevio.BT_Cab &&
 					time.Since(cs.HallOrders[f][bt].Time) > orderTimeout &&

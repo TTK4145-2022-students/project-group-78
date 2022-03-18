@@ -15,27 +15,23 @@ import (
 	"github.com/rapidloop/skv"
 )
 
-func clParams() (id int, bcastPort int, elevPort int) {
-	idP := flag.Int("id", 0, "elevator id")
-	bcastPortP := flag.Int("bcastPort", 56985, "broadcast port")
-	elevPortP := flag.Int("elevPort", 15657, "elevator port")
-	flag.Parse()
-	return *idP, *bcastPortP, *elevPortP
-}
-
 func main() {
-	id, bcastPort, elevPort := clParams()
+	idP := flag.Int("id", 0, "elevator id")
+	port := flag.Int("port", 15657, "elevator port")
+	flag.Parse()
+	id := *idP
+
 	assignedOrdersC := make(chan elevator.Orders, config.ChanSize)
 	stateC := make(chan elevator.State, config.ChanSize)
 	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, config.ChanSize)	
 	sendC, receiveC := make(chan central.CentralState), make(chan central.CentralState)
 
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", elevPort), config.NumFloors)
+	elevio.Init(fmt.Sprintf("127.0.0.1:%v", *port), config.NumFloors)
 	lights.Clear()
 	go elevator.Elevator(assignedOrdersC, orderCompletedC, stateC)
 	go elevio.PollButtons(newOrderC)
-	go bcast.Transmitter(bcastPort, sendC)
-	go bcast.Receiver(bcastPort, receiveC)
+	go bcast.Transmitter(config.BcastPort, sendC)
+	go bcast.Receiver(config.BcastPort, receiveC)
 
 	store, err := skv.Open("db.db")
 	if err != nil {

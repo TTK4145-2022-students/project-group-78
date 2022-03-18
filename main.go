@@ -19,8 +19,8 @@ func main() {
 	idP := flag.Int("id", 0, "elevator id")
 	port := flag.Int("port", 15657, "elevator port")
 	flag.Parse()
-	id := *idP
 
+	id := *idP
 	assignedOrdersC := make(chan elevator.Orders, config.ChanSize)
 	stateC := make(chan elevator.State, config.ChanSize)
 	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, config.ChanSize)	
@@ -37,10 +37,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	cs := central.New(id, <-stateC)
+	var cs central.CentralState
 	if err = store.Get("cs", &cs); err != nil && err != skv.ErrNotFound {
 		panic(err)
 	}
+	cs.Origin = id
 
 	timer := time.NewTimer(config.TransmitInterval)
 	for {

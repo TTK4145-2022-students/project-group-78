@@ -21,12 +21,6 @@ type Order struct {
 	Time   time.Time
 }
 
-func New(origin int, state elevator.State) (cs CentralState) {
-	cs.Origin = origin
-	cs.States[origin] = state
-	return cs
-}
-
 func (cs CentralState) AddOrder(be elevio.ButtonEvent) CentralState {
 	if be.Button == elevio.BT_Cab {
 		cs.CabOrders[cs.Origin][be.Floor] = true

@@ -4,13 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TTK4145-2022-students/project-group-78/elevator"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMerge(t *testing.T) {
-	cs := New(1, elevator.State{})
-	newCs := New(2, elevator.State{})
+	cs := CentralState{Origin: 1}
+	newCs := CentralState{Origin: 2}
 	o := Order{true, time.Now()}
 	newCs.HallOrders[0][0] = o
 	cs = cs.Merge(newCs)

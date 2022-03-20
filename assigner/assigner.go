@@ -18,7 +18,7 @@ import (
 )
 
 type hraInput struct {
-	HallRequests [config.NumFloors][2]bool `json:"hallRequests"`
+	HallRequests [config.NumFloors][config.NumHallOrderTypes]bool `json:"hallRequests"`
 	States       map[string]hraState       `json:"states"`
 }
 
@@ -40,7 +40,7 @@ func elevatorBehaviour2String(b elevator.Behaviour) string {
 func newHraInput(cs central.CentralState) hraInput {
 	hrai := hraInput{}
 	for f := range cs.HallOrders {
-		hrai.HallRequests[f] = [2]bool{cs.HallOrders[f][elevio.BT_HallUp].Active, cs.HallOrders[f][elevio.BT_HallDown].Active}
+		hrai.HallRequests[f] = [...]bool{cs.HallOrders[f][elevio.BT_HallUp].Active, cs.HallOrders[f][elevio.BT_HallDown].Active}
 	}
 	hrai.States = make(map[string]hraState)
 	for id, state := range cs.States {

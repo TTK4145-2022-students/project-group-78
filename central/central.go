@@ -10,7 +10,7 @@ import (
 
 type CentralState struct {
 	Origin      int
-	HallOrders  [config.NumFloors][2]Order
+	HallOrders  [config.NumFloors][config.NumHallOrderTypes]Order
 	CabOrders   [config.NumElevs][config.NumFloors]bool
 	States      [config.NumElevs]elevator.State
 	LastUpdated [config.NumElevs]time.Time

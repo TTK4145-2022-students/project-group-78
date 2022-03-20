@@ -7,7 +7,7 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/config"
 )
 
-type Orders [config.NumFloors][3]bool
+type Orders [config.NumFloors][config.NumOrderTypes]bool
 
 func (o Orders) above(floor int) bool {
 	for f := floor + 1; f < len(o); f++ {

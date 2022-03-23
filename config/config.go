@@ -8,10 +8,10 @@ const (
 	NumOrderTypes     = 3
 	NumHallOrderTypes = 2
 	DoorOpenTime      = 3 * time.Second
-	TransmitInterval  = 5 * time.Millisecond
-	LightDelay        = 200 * time.Millisecond
+	TransmitInterval  = 10 * time.Millisecond
+	LightDelay        = 33 * TransmitInterval
 	ChanSize          = 16
-	OrderTimout       = 200 * time.Millisecond
+	OrderTimout       = 500 * time.Millisecond
 	ElevTimeout       = DoorOpenTime + OrderTimout
-	BcastPort         = 56985
+	BcastPort         = 56986
 )

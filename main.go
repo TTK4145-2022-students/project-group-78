@@ -17,7 +17,7 @@ import (
 
 func main() {
 	idP := flag.Int("id", 0, "elevator id")
-	port := flag.Int("port", 15657, "elevator port")
+	portP := flag.Int("port", 15657, "elevator port")
 	flag.Parse()
 
 	id := *idP
@@ -26,7 +26,7 @@ func main() {
 	newOrderC, orderCompletedC := make(chan elevio.ButtonEvent), make(chan elevio.ButtonEvent, config.ChanSize)
 	sendC, receiveC := make(chan central.CentralState), make(chan central.CentralState)
 
-	elevio.Init(fmt.Sprintf("127.0.0.1:%v", *port), config.NumFloors)
+	elevio.Init(fmt.Sprintf("127.0.0.1:%v", *portP), config.NumFloors)
 	lights.Clear()
 	go elevator.Elevator(assignedOrdersC, orderCompletedC, stateC)
 	go elevio.PollButtons(newOrderC)

@@ -10,11 +10,11 @@ import (
 var lights elevator.Orders
 
 func Set(cs central.CentralState) {
-	cabOrders := cs.CabOrders[cs.Origin]
-	for f := range cs.CabOrders {
-		if cabOrders[f] != lights[f][elevio.BT_Cab] {
-			elevio.SetButtonLamp(elevio.BT_Cab, f, cabOrders[f])
-			lights[f][elevio.BT_Cab] = cabOrders[f]
+	localCabOrders := cs.CabOrders[cs.Origin]
+	for f := range localCabOrders {
+		if localCabOrders[f] != lights[f][elevio.BT_Cab] {
+			elevio.SetButtonLamp(elevio.BT_Cab, f, localCabOrders[f])
+			lights[f][elevio.BT_Cab] = localCabOrders[f]
 		}
 	}
 	for f := range cs.HallOrders {

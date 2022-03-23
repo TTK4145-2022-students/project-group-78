@@ -1,8 +1,6 @@
 package elevator
 
 import (
-	"log"
-
 	"github.com/TTK4145-2022-students/driver-go-group-78/elevio"
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/door"
@@ -11,15 +9,16 @@ import (
 type State struct {
 	Behaviour Behaviour
 	Floor     int
-	Direction elevio.MotorDirection
 }
 
 type Behaviour int
 
 const (
 	Idle Behaviour = iota
-	DoorOpen
-	Moving
+	DoorOpenUp
+	DoorOpenDown
+	MovingUp
+	MovingDown
 )
 
 func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, stateC chan<- State) {
@@ -31,60 +30,134 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 	go elevio.PollFloorSensor(floorEnteredC)
 
 	elevio.SetMotorDirection(elevio.MD_Down)
-	state := State{Behaviour: Moving, Direction: elevio.MD_Down}
+	state := State{}
 	var orders Orders
 
 	for {
 		select {
 		case <-doorClosedC:
-			if state.Behaviour != DoorOpen {
-				log.Panicf("door closed while %v", state.Behaviour)
-			}
-			state.Direction, state.Behaviour = nextAction(orders, state.Floor, state.Direction)
 			switch state.Behaviour {
-			case Idle:
-			case DoorOpen:
-				doorOpenC <- true
-				clearOrders(orders, state.Floor, state.Direction, completedOrderC)
+			case DoorOpenUp:
+				switch {
+				case orders.above(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Up)
+					state.Behaviour = MovingUp
 
-			case Moving:
-				elevio.SetMotorDirection(state.Direction)
+				case orders.below(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Down)
+					state.Behaviour = MovingDown
+
+				case orders[state.Floor][elevio.BT_HallDown]:
+					completedOrderC <- elevio.ButtonEvent{Floor: state.Floor, Button: elevio.BT_HallDown}
+					doorOpenC <- true
+					state.Behaviour = DoorOpenDown
+
+				default:
+					state.Behaviour = Idle
+				}
+
+			case DoorOpenDown:
+				switch {
+				case orders.below(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Down)
+					state.Behaviour = MovingDown
+
+				case orders.above(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Up)
+					state.Behaviour = MovingUp
+
+				case orders[state.Floor][elevio.BT_HallUp]:
+					completedOrderC <- elevio.ButtonEvent{Floor: state.Floor, Button: elevio.BT_HallUp}
+					doorOpenC <- true
+					state.Behaviour = DoorOpenUp
+
+				default:
+					state.Behaviour = Idle
+				}
+			default:
+				panic(state)
 			}
 			stateC <- state
 
 		case state.Floor = <-floorEnteredC:
-			if state.Behaviour != Moving {
-				log.Panicf("elevator entered floor while %v", state.Behaviour)
-			}
-			elevio.SetFloorIndicator(state.Floor)
-			if shouldStop(orders, state.Floor, state.Direction) {
-				elevio.SetMotorDirection(elevio.MD_Stop)
-				doorOpenC <- true
-				clearOrders(orders, state.Floor, state.Direction, completedOrderC)
-				state.Behaviour = DoorOpen
+			switch state.Behaviour {
+			case MovingUp:
+				switch {
+				case orders[state.Floor][elevio.BT_HallUp] || orders[state.Floor][elevio.BT_Cab]:
+					elevio.SetMotorDirection(elevio.MD_Stop)
+					doorOpenC <- true
+					state.Behaviour = DoorOpenUp
+					// Clear orders
+
+				case orders.above(state.Floor):
+
+				case orders[state.Floor][elevio.BT_HallDown]:
+					elevio.SetMotorDirection(elevio.MD_Stop)
+					doorOpenC <- true
+					state.Behaviour = DoorOpenDown
+					// Clear orders
+				
+				case orders.below(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Down)
+					state.Behaviour = MovingDown
+
+				default:
+					elevio.SetMotorDirection(elevio.MD_Stop)
+					state.Behaviour = Idle
+				}
+
+			case MovingDown:
+				switch {
+				case orders[state.Floor][elevio.BT_HallDown] || orders[state.Floor][elevio.BT_Cab]:
+					elevio.SetMotorDirection(elevio.MD_Stop)
+					doorOpenC <- true
+					state.Behaviour = DoorOpenDown
+					// Clear orders
+
+				case orders.below(state.Floor):
+
+				case orders[state.Floor][elevio.BT_HallUp]:
+					elevio.SetMotorDirection(elevio.MD_Stop)
+					doorOpenC <- true
+					state.Behaviour = DoorOpenUp
+					// Clear orders
+
+				case orders.above(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Up)
+					state.Behaviour = MovingUp
+
+				default:
+					elevio.SetMotorDirection(elevio.MD_Stop)
+					state.Behaviour = Idle
+				}
+
+			default:
+				panic(state)
 			}
 			stateC <- state
 
 		case orders = <-ordersC:
 			switch state.Behaviour {
-			case DoorOpen:
-				if shouldClear(orders, state.Floor, state.Direction) {
-					doorOpenC <- true
-					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
-				}
+			case DoorOpenUp:
+				//clear orders possibly
+
+			case DoorOpenDown:
+				//clear orders possibly
 
 			case Idle:
-				state.Direction, state.Behaviour = nextAction(orders, state.Floor, state.Direction)
-				switch state.Behaviour {
-				case Idle:
-				case DoorOpen:
+				switch {
+				case orders.here(state.Floor):
 					doorOpenC <- true
-					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
-					stateC <- state
+					state.Behaviour = DoorOpenDown
+					// Clear orders
 
-				case Moving:
-					elevio.SetMotorDirection(state.Direction)
-					stateC <- state
+				case orders.above(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Up)
+					state.Behaviour = MovingUp
+
+				case orders.below(state.Floor):
+					elevio.SetMotorDirection(elevio.MD_Up)
+					state.Behaviour = MovingUp
 				}
 			}
 		}

@@ -66,20 +66,26 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 			stateC <- state
 
 		case orders = <-ordersC:
-			if state.Behaviour != Idle {
-				continue
-			}
-			state.Direction, state.Behaviour = nextAction(orders, state.Floor, state.Direction)
 			switch state.Behaviour {
-			case Idle:
 			case DoorOpen:
-				doorOpenC <- true
-				clearOrders(orders, state.Floor, state.Direction, completedOrderC)
-				stateC <- state
+				if shouldClear(orders, state.Floor, state.Direction) {
+					doorOpenC <- true
+					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
+				}
 
-			case Moving:
-				elevio.SetMotorDirection(state.Direction)
-				stateC <- state
+			case Idle:
+				state.Direction, state.Behaviour = nextAction(orders, state.Floor, state.Direction)
+				switch state.Behaviour {
+				case Idle:
+				case DoorOpen:
+					doorOpenC <- true
+					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
+					stateC <- state
+
+				case Moving:
+					elevio.SetMotorDirection(state.Direction)
+					stateC <- state
+				}
 			}
 		}
 	}

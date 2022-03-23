@@ -125,3 +125,9 @@ func clearOrders(orders Orders, floor int, direction elevio.MotorDirection, comp
 		panic(fmt.Sprintf("elevator: unknown direction %v", direction))
 	}
 }
+
+func shouldClear(orders Orders, f int, direction elevio.MotorDirection) bool {
+	return orders[f][elevio.BT_Cab] ||
+		direction == elevio.MD_Up && orders[f][elevio.BT_HallUp] ||
+		direction == elevio.MD_Down && orders[f][elevio.BT_HallDown]
+}

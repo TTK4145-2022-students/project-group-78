@@ -33,7 +33,7 @@ func main() {
 	go bcast.Transmitter(config.BcastPort, sendC)
 	go bcast.Receiver(config.BcastPort, receiveC)
 
-	store, err := skv.Open("db.db")
+	store, err := skv.Open(fmt.Sprintf("elev%v.db", id))
 	if err != nil {
 		panic(err)
 	}

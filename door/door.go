@@ -22,7 +22,8 @@ func Door(openC <-chan bool, closedC chan<- bool) {
 
 	obstructed := false
 	state := closed
-	var timer *time.Timer
+	timer := time.NewTimer(time.Hour)
+	timer.Stop()
 
 	for {
 		select {

@@ -60,7 +60,7 @@ func hallRequestAssigner(hrai hraInput) map[string]elevator.Orders {
 		panic(err)
 	}
 
-	output, err := exec.Command("hall_request_assigner", "-i", "--includeCab", string(b)).Output()
+	output, err := exec.Command("./hall_request_assigner", "-i", "--includeCab", string(b)).Output()
 	if err != nil {
 		panic(err)
 	}

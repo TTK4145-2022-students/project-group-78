@@ -19,7 +19,7 @@ import (
 
 type hraInput struct {
 	HallRequests [config.NumFloors][config.NumHallOrderTypes]bool `json:"hallRequests"`
-	States       map[string]hraState       `json:"states"`
+	States       map[string]hraState                              `json:"states"`
 }
 
 type hraState struct {
@@ -75,9 +75,9 @@ func hallRequestAssigner(hrai hraInput) map[string]elevator.Orders {
 
 func Assigner(cs central.CentralState) elevator.Orders {
 	hrai := newHraInput(cs)
-	for timeout := config.OrderTimout; ; timeout += config.OrderTimout {
-		// Increase order timeout for each removed elevator, so that not multiple elevators times out the same order
-		key, faulty := findOtherFaultyElevator(cs, hrai, timeout)
+	for c := time.Duration(1); ; c++ {
+		// Increase timeout for each removed elevator, so that not multiple elevators times out the same order
+		key, faulty := findOtherFaultyElevator(cs, hrai, c*config.OrderTimout, c*config.ElevTimeout)
 		if faulty {
 			delete(hrai.States, key)
 		} else {
@@ -86,7 +86,7 @@ func Assigner(cs central.CentralState) elevator.Orders {
 	}
 }
 
-func findOtherFaultyElevator(cs central.CentralState, hrai hraInput, orderTimeout time.Duration) (key string, faulty bool) {
+func findOtherFaultyElevator(cs central.CentralState, hrai hraInput, orderTimeout time.Duration, elevatorTimeout time.Duration) (key string, faulty bool) {
 	for key, orders := range hallRequestAssigner(hrai) {
 		id, err := strconv.Atoi(key)
 		if err != nil {
@@ -100,7 +100,7 @@ func findOtherFaultyElevator(cs central.CentralState, hrai hraInput, orderTimeou
 				if orders[f][bt] &&
 					bt != elevio.BT_Cab &&
 					time.Since(cs.HallOrders[f][bt].Time) > orderTimeout &&
-					time.Since(cs.LastUpdated[id]) > config.ElevTimeout {
+					time.Since(cs.LastUpdated[id]) > elevatorTimeout {
 					// If we have an old hall order and the assigned elevator has not responeded, conclude that it is faulty
 					return key, true
 				}

@@ -8,8 +8,8 @@ const (
 	NumOrderTypes     = 3
 	NumHallOrderTypes = 2
 	DoorOpenTime      = 3 * time.Second
-	TransmitInterval  = 10 * time.Millisecond
-	LightDelay        = 33 * TransmitInterval
+	TransmitInterval  = 15 * time.Millisecond
+	LightDelay        = 300 * time.Millisecond
 	ChanSize          = 16
 	OrderTimout       = 500 * time.Millisecond
 	ElevTimeout       = DoorOpenTime + OrderTimout

@@ -45,24 +45,27 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 				case orders.inDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMd())
 					state.Behaviour = Moving
+					stateC <- state
 
 				case orders[state.Floor][state.Direction.opposite()]:
 					doorOpenC <- true
 					state.Direction = state.Direction.opposite()
 					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
+					stateC <- state
 
 				case orders.inDirection(state.Floor, state.Direction.opposite()):
 					state.Direction = state.Direction.opposite()
 					elevio.SetMotorDirection(state.Direction.toMd())
 					state.Behaviour = Moving
+					stateC <- state
 
 				default:
 					state.Behaviour = Idle
+					stateC <- state
 				}
 			default:
 				panic(state)
 			}
-			stateC <- state
 
 		case state.Floor = <-floorEnteredC:
 			elevio.SetFloorIndicator(state.Floor)
@@ -87,7 +90,6 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 				case orders.inDirection(state.Floor, state.Direction.opposite()):
 					state.Direction = state.Direction.opposite()
 					elevio.SetMotorDirection(state.Direction.toMd())
-					state.Behaviour = Moving
 
 				default:
 					elevio.SetMotorDirection(elevio.MD_Stop)
@@ -102,29 +104,32 @@ func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, 
 			switch state.Behaviour {
 			case Idle:
 				switch {
-				case orders[state.Floor][elevio.BT_Cab] || orders[state.Floor][state.Direction]:
-					doorOpenC <- true
-					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
-					state.Behaviour = DoorOpen
-
-				case orders[state.Floor][state.Direction.opposite()]:
+				case orders[state.Floor][state.Direction.opposite()] && !orders[state.Floor][state.Direction]:
 					doorOpenC <- true
 					state.Direction = state.Direction.opposite()
 					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
 					state.Behaviour = DoorOpen
+					stateC <- state
+
+				case orders[state.Floor][elevio.BT_Cab] || orders[state.Floor][state.Direction]:
+					doorOpenC <- true
+					clearOrders(orders, state.Floor, state.Direction, completedOrderC)
+					state.Behaviour = DoorOpen
+					stateC <- state
 
 				case orders.inDirection(state.Floor, state.Direction):
 					elevio.SetMotorDirection(state.Direction.toMd())
 					state.Behaviour = Moving
+					stateC <- state
 
 				case orders.inDirection(state.Floor, state.Direction.opposite()):
 					state.Direction = state.Direction.opposite()
 					elevio.SetMotorDirection(state.Direction.toMd())
 					state.Behaviour = Moving
+					stateC <- state
 
 				default:
 				}
-				stateC <- state
 
 			case DoorOpen:
 				switch {

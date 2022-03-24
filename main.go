@@ -48,16 +48,13 @@ func main() {
 		select {
 		case o := <-newOrderC:
 			cs = cs.AddOrder(o)
-			sendC <- cs
 
 		case o := <-orderCompletedC:
 			cs = cs.RemoveOrder(o)
-			sendC <- cs
 
 		case s := <-stateC:
 			cs.States[id] = s
 			cs.LastUpdated[id] = time.Now()
-			sendC <- cs
 
 		case newCs := <-receiveC:
 			if newCs.Origin == id {

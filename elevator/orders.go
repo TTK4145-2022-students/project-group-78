@@ -35,15 +35,10 @@ func (o Orders) inDirection(floor int, direction Direction) bool {
 }
 
 func clearOrders(orders Orders, floor int, direction Direction, completedOrderC chan<- elevio.ButtonEvent) {
-	switch {
-	case orders[floor][elevio.BT_Cab]:
+	if orders[floor][elevio.BT_Cab] {
 		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab}
-		fallthrough
-
-	case orders[floor][direction]:
+	}
+	if orders[floor][direction] {
 		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: direction.toBt()}
-
-	case orders[floor][direction.opposite()]:
-		completedOrderC <- elevio.ButtonEvent{Floor: floor, Button: direction.opposite().toBt()}
 	}
 }

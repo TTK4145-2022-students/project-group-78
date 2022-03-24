@@ -64,7 +64,6 @@ func main() {
 
 		case <-ticker.C:
 			sendC <- cs
-			continue
 		}
 
 		if err = store.Put("cs", cs); err != nil {

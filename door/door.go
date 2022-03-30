@@ -1,7 +1,6 @@
 package door
 
 import (
-	"log"
 	"time"
 
 	"github.com/TTK4145-2022-students/driver-go-group-78/elevio"
@@ -49,12 +48,12 @@ func Door(openC <-chan bool, closedC chan<- bool) {
 				state = inCountdown
 
 			default:
-				log.Panicf("door: unknown state %v", state)
+				panic(state)
 			}
 
 		case <-timer.C:
 			if state != inCountdown {
-				log.Panicf("door: timer expired while in %v", state)
+				panic(state)
 			}
 			if obstructed {
 				state = stuck

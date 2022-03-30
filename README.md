@@ -1,1 +1,1 @@
-No more todos
+Use ```timedatectl``` to check if NTP is active

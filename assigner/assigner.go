@@ -76,7 +76,7 @@ func hallRequestAssigner(hrai hraInput) map[string]elevator.Orders {
 	return orders
 }
 
-func Assigner(cs central.CentralState) elevator.Orders {
+func Assign(cs central.CentralState) elevator.Orders {
 	hrai := newHraInput(cs)
 	for c := time.Duration(1); ; c++ {
 		// Increase timeout for each removed elevator, so that not multiple elevators times out the same order

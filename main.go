@@ -69,7 +69,7 @@ func main() {
 		if err = store.Put("cs", cs); err != nil {
 			panic(err)
 		}
-		assignedOrdersC <- assigner.Assigner(cs)
+		assignedOrdersC <- assigner.Assign(cs)
 		// Delay lights so that we ensure that sufficent attemps have been done to send new orders to the other nodes.
 		// Orders are anyway stored in persistant storage, so no orders can be lost anyway, but this is to ensure that the spec is satisfied
 		go func() {

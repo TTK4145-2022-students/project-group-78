@@ -7,11 +7,13 @@ const (
 	NumFloors         = 4
 	NumOrderTypes     = 3
 	NumHallOrderTypes = 2
-	DoorOpenTime      = 3 * time.Second
-	TransmitInterval  = 15 * time.Millisecond
-	LightDelay        = 300 * time.Millisecond
-	ChanSize          = 16
-	OrderTimout       = 500 * time.Millisecond
-	ElevTimeout       = DoorOpenTime + OrderTimout
-	BcastPort         = 56986
+
+	DoorOpenTime     = 3 * time.Second
+	TransmitInterval = 15 * time.Millisecond
+	OrderTimout      = 300 * time.Millisecond
+	LightDelay       = OrderTimout
+	ElevTimeout      = DoorOpenTime + OrderTimout
+
+	ChanSize  = 16
+	BcastPort = 56986
 )

@@ -77,7 +77,5 @@ func main() {
 			time.Sleep(config.LightDelay)
 			lights.Set(cs)
 		}()
-		//DEBUG
-		fmt.Println(len(assignedOrdersC), len(stateC), len(orderCompletedC), len(receiveC))
 	}
 }

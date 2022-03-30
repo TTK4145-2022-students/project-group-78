@@ -39,7 +39,6 @@ func (cs CentralState) RemoveOrder(be elevio.ButtonEvent) CentralState {
 	return cs
 }
 
-// Merge newCs onto cs
 func (cs CentralState) Merge(newCs CentralState) CentralState {
 	cs.States[newCs.Origin] = newCs.States[newCs.Origin]
 	cs.CabOrders[newCs.Origin] = newCs.CabOrders[newCs.Origin]

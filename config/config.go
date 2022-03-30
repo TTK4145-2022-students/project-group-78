@@ -15,5 +15,5 @@ const (
 	ElevTimeout      = DoorOpenTime + OrderTimout
 
 	ChanSize  = 16
-	BcastPort = 56986
+	BcastPort = 58735
 )

@@ -67,7 +67,7 @@ func main() {
 		}
 
 		if err = store.Put("cs", cs); err != nil {
-			panic(err)
+			fmt.Println(err)
 		}
 		assignedOrdersC <- assigner.Assign(cs)
 		// Delay lights so that we ensure that sufficent attemps have been done to send new orders to the other nodes.

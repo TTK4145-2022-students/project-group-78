@@ -1,8 +1,3 @@
-// Assigns order to the elevator running on the node using hall_requst_assigner (hra).
-// Faulty elevators are detected and their orders are reassigned.
-// A faulty elevator is one that has not moved in a while, and has an order which is not entirly fresh.
-// The rationale for this is that an elevator should move when it gets a new order, otherwise it is faulty.
-
 package assigner
 
 import (
@@ -16,6 +11,21 @@ import (
 	"github.com/TTK4145-2022-students/project-group-78/config"
 	"github.com/TTK4145-2022-students/project-group-78/elevator"
 )
+
+// Assign returns orders assigned to cs.Origin (this elevator), after removing all faulty elevators.
+// A faulty elevator is one that has orders assigned to it and has not moved in a while.
+func Assign(cs central.CentralState) elevator.Orders {
+	hrai := newHraInput(cs)
+	for c := time.Duration(1); ; c++ {
+		// Increase timeout for each removed elevator, so that not multiple elevators times out the same order
+		key, faulty := findOtherFaultyElevator(cs, hrai, c*config.OrderTimout, c*config.ElevTimeout)
+		if faulty {
+			delete(hrai.States, key)
+		} else {
+			return hallRequestAssigner(hrai)[strconv.Itoa(cs.Origin)]
+		}
+	}
+}
 
 type hraInput struct {
 	HallRequests [config.NumFloors][config.NumHallOrderTypes]bool `json:"hallRequests"`
@@ -70,19 +80,6 @@ func hallRequestAssigner(hrai hraInput) map[string]elevator.Orders {
 		panic(err)
 	}
 	return orders
-}
-
-func Assign(cs central.CentralState) elevator.Orders {
-	hrai := newHraInput(cs)
-	for c := time.Duration(1); ; c++ {
-		// Increase timeout for each removed elevator, so that not multiple elevators times out the same order
-		key, faulty := findOtherFaultyElevator(cs, hrai, c*config.OrderTimout, c*config.ElevTimeout)
-		if faulty {
-			delete(hrai.States, key)
-		} else {
-			return hallRequestAssigner(hrai)[strconv.Itoa(cs.Origin)]
-		}
-	}
 }
 
 func findOtherFaultyElevator(cs central.CentralState, hrai hraInput, orderTimeout time.Duration, elevatorTimeout time.Duration) (key string, faulty bool) {

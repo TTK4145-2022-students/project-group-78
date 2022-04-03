@@ -15,6 +15,7 @@ import (
 	"github.com/rapidloop/skv"
 )
 
+// Read the README (duh!)
 func main() {
 	idP := flag.Int("id", 0, "elevator id")
 	portP := flag.Int("port", 15657, "elevator port")

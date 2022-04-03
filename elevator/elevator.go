@@ -20,6 +20,10 @@ const (
 	Moving
 )
 
+func (b Behaviour) ToString() string {
+	return map[Behaviour]string{Idle: "idle", DoorOpen: "doorOpen", Moving: "moving"}[b]
+}
+
 func Elevator(ordersC <-chan Orders, completedOrderC chan<- elevio.ButtonEvent, stateC chan<- State) {
 	doorOpenC := make(chan bool, config.ChanSize)
 	doorClosedC := make(chan bool, config.ChanSize)

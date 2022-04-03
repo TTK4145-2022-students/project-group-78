@@ -29,10 +29,6 @@ type hraState struct {
 	CabRequests [config.NumFloors]bool `json:"cabRequests"`
 }
 
-func elevatorBehaviour2String(b elevator.Behaviour) string {
-	return map[elevator.Behaviour]string{elevator.Idle: "idle", elevator.DoorOpen: "doorOpen", elevator.Moving: "moving"}[b]
-}
-
 func newHraInput(cs central.CentralState) hraInput {
 	hrai := hraInput{}
 	for f := range cs.HallOrders {
@@ -48,7 +44,7 @@ func newHraInput(cs central.CentralState) hraInput {
 		}
 
 		hrai.States[strconv.Itoa(id)] = hraState{
-			Behaviour:   elevatorBehaviour2String(state.Behaviour),
+			Behaviour:   state.Behaviour.ToString(),
 			Floor:       state.Floor,
 			Direction:   direction,
 			CabRequests: cs.CabOrders[id],

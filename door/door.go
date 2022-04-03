@@ -16,6 +16,7 @@ const (
 )
 
 func Door(openC <-chan bool, closedC chan<- bool) {
+	elevio.SetDoorOpenLamp(false)
 	obstructionC := make(chan bool)
 	go elevio.PollObstructionSwitch(obstructionC)
 

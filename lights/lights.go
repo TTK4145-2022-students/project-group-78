@@ -29,7 +29,6 @@ func Set(cs central.CentralState) {
 }
 
 func Clear() {
-	elevio.SetDoorOpenLamp(false)
 	for f := 0; f < config.NumFloors; f++ {
 		for bt := 0; bt < config.NumOrderTypes; bt++ {
 			elevio.SetButtonLamp(elevio.ButtonType(bt), f, false)

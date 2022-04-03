@@ -17,7 +17,8 @@ import (
 func Assign(cs central.CentralState) elevator.Orders {
 	hrai := newHraInput(cs)
 	for c := time.Duration(1); ; c++ {
-		// Increase timeout for each removed elevator, so that not multiple elevators times out the same order
+		// Increase timeout for each removed elevator, so that not multiple elevators times out the same order.
+		// The reason for finding anOTHER faulty elevator is that we want "ourselves" to try to serve orders.
 		key, faulty := findOtherFaultyElevator(cs, hrai, c*config.OrderTimout, c*config.ElevTimeout)
 		if faulty {
 			delete(hrai.States, key)
@@ -46,17 +47,10 @@ func newHraInput(cs central.CentralState) hraInput {
 	}
 	hrai.States = make(map[string]hraState)
 	for id, state := range cs.States {
-		var direction string
-		if state.Behaviour == elevator.Idle {
-			direction = "stop"
-		} else {
-			direction = state.Direction.ToString()
-		}
-
 		hrai.States[strconv.Itoa(id)] = hraState{
 			Behaviour:   state.Behaviour.ToString(),
 			Floor:       state.Floor,
-			Direction:   direction,
+			Direction:   state.Direction.ToString(),
 			CabRequests: cs.CabOrders[id],
 		}
 	}

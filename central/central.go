@@ -9,11 +9,11 @@ import (
 )
 
 type CentralState struct {
-	Origin      int
-	HallOrders  [config.NumFloors][config.NumHallOrderTypes]Order
-	CabOrders   [config.NumElevs][config.NumFloors]bool
-	States      [config.NumElevs]elevator.State
-	LastUpdated [config.NumElevs]time.Time
+	Origin          int
+	HallOrders      [config.NumFloors][config.NumHallOrderTypes]Order
+	CabOrders       [config.NumElevs][config.NumFloors]bool
+	States          [config.NumElevs]elevator.State
+	LastStateUpdate [config.NumElevs]time.Time
 }
 
 type Order struct {
@@ -42,7 +42,7 @@ func (cs CentralState) RemoveOrder(be elevio.ButtonEvent) CentralState {
 func (cs CentralState) Merge(newCs CentralState) CentralState {
 	cs.States[newCs.Origin] = newCs.States[newCs.Origin]
 	cs.CabOrders[newCs.Origin] = newCs.CabOrders[newCs.Origin]
-	cs.LastUpdated[newCs.Origin] = newCs.LastUpdated[newCs.Origin]
+	cs.LastStateUpdate[newCs.Origin] = newCs.LastStateUpdate[newCs.Origin]
 	for f := range cs.HallOrders {
 		for bt := range cs.HallOrders[f] {
 			if cs.HallOrders[f][bt].Time.Before(newCs.HallOrders[f][bt].Time) {

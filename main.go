@@ -55,7 +55,7 @@ func main() {
 
 		case s := <-stateC:
 			cs.States[id] = s
-			cs.LastUpdated[id] = time.Now()
+			cs.LastStateUpdate[id] = time.Now()
 
 		case newCs := <-receiveC:
 			if newCs.Origin == id {

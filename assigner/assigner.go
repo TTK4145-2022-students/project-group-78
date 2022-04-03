@@ -96,7 +96,7 @@ func findOtherFaultyElevator(cs central.CentralState, hrai hraInput, orderTimeou
 				if orders[f][bt] &&
 					bt != elevio.BT_Cab &&
 					time.Since(cs.HallOrders[f][bt].Time) > orderTimeout &&
-					time.Since(cs.LastUpdated[id]) > elevatorTimeout {
+					time.Since(cs.LastStateUpdate[id]) > elevatorTimeout {
 					// If we have an old hall order and the assigned elevator has not responeded, conclude that it is faulty
 					return key, true
 				}

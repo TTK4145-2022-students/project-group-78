@@ -6,7 +6,6 @@ require (
 	github.com/TTK4145-2022-students/Network-go-group-78 v0.0.0-20220311120107-6dcd04a7e74b
 	github.com/TTK4145-2022-students/driver-go-group-78 v0.0.0-20220311113927-91ee6396bc17
 	github.com/rapidloop/skv v0.0.0-20180909015525-9def2caac4cc
-	github.com/stretchr/testify v1.7.0
 )
 
 require (

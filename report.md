@@ -38,7 +38,7 @@ The major perk of the timestamp solution is that it reduces the inherent complex
 The spec specifies that when an elevator button is pushed it should always try to send out the event to the other elevators before the actual light is turned on. 
 
 #### The ack way
-This issue can be solved by sending the events out on the network and wait for an acknowlagement from the other elevators.
+This issue can be solved by sending the events out on the network and wait for an acknowlagement from the other elevators before turning on the light. The downside of using acks is that the lights will be dependent on the acks. Mixing these two modules together is complicating the system more than necessary.
 
 #### Persistant storage
 To satisfy the spec, one can resolve the issue without acknowlagements, but with a persistant storage and a small delay. In this case the light is turned on when the button is pushed and the action is stored in a persistant storage. This means that even if the system shuts down, the order is not lost because when booted up again it will load in the events stored in the persistant storage.

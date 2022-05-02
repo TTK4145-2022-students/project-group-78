@@ -1,6 +1,6 @@
 # Elevator project report
 ## Documentation
-Module communication diagram shwoing what information is exchanged between modules.
+Module communication diagram showing what information is exchanged between modules.
 ![Communication diagram](communication_diagram.drawio.svg)
 
 Peculiar design choises listed below

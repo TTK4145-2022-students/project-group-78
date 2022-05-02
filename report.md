@@ -1,5 +1,4 @@
 # Elevator project report
-# Delayed light, persistant storage, timesync
 ## Documentation
 Module communication diagram shwoing what information is exchanged between modules.
 ![Communication diagram](communication_diagram.drawio.svg)

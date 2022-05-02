@@ -27,10 +27,12 @@ While nodes are connected together and to the internet, their clocks are synced 
 ## Case studies of important descicions
 
 ### System state agreement
-A system that can be interacted with at multiple processes may suffer from the problem of knowing what happened first. In the case of the elevator project 
-it occurs, for instance, when a order comes in in one process at merely the same time as it is removed by another process. This may result in a situation where the processes disagree upon the system state. Facing this problem we have come up with two reasonable solutions. One, in which sequence numbers are utilized and another that uses timestamp. Both approaches come with their set of new problems. 
+A system that can be interacted with at multiple processes may suffer from the problem of knowing what happened first. In the case of the elevator project it occurs, for instance, when a order comes in in one process at the same time as it is removed by another process. This may result in a situation where the processes disagree upon the system state. Facing this problem we have come up with two reasonable solutions. One, in which sequence numbers are utilized and another that uses timestamp. Both approaches come with their set of new problems. 
+
 
 When considering the sequence number solution, the problem of two processes claiming the same sequence number for an event, occurs. This is however not at problem when timestamping every event. That is, the instance of similarily timestamped events with nanosecond precision, is highly unlikely. And the resending of central state would in the event of this unlikelihood resolve thtis issue at the next broadcast ~15 ms later. 
+As the timestamp solution is clearly easier to implement, we went for that solution. See the paragraph "considerations regarding timestamps" above.
+
 
 The major perk of the timestamp solution is that it reduces the inherent complexity of the elevator problem. That is, it makes sequence numbers in the communication redundant. As this occured to us to be the simplest solution we implemented it. Although we beared in mind the (in most cases)minor drawback of setting requirements to the system, namely synchronized clocks.
 

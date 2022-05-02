@@ -21,7 +21,19 @@ Peculiar design choises listed below
 - Becuase elevator state updates are timestamped, it is easy to detect an elevator which should have moved or broadcast something. Whether this is due to door obstruction, network disconnect, packet loss, software crash or motor disconnect, we do not care.
 - Orders are continuously (re)assigned by each elevator. Other assumed faulty elevators (we do not care whether we ourselves are faulty) are removed from the assignments. The assigments are not broadcast, because all elevators should agree on which takes which in normal operation.
 
-## Considerations regarding timestamps
+### Considerations regarding timestamps
 While nodes are connected together and to the internet, their clocks are synced up (NTP). There would be no problem syncing clocks without a internet connection, but this has not been implemented because nodes are also connected to the internet when they are connected together in this course. However, if nodes are disconnected, their clocks may fall out of sync. This can be a problem in some very specific scenarios, but as this requires very long disconnect periods, this is deemed unproblematic in this context.
 
 ## Case studies of important descicions
+
+### Error detection and handling
+As hall_request_assigner is used, error handling is as simple as excluding erroneous elevators when assiging. However, the task of detecting that an elevator is erroneous was an interesting design descicion. We found two alternatives: explicit and implicit error detection.
+
+#### Explicit error detection
+Detecting obstruction is trivial. Detecting motor stop requires a timer. Detecting crash/disconnect reqiures heartbeats and a timer. This is an explicit error detection.
+
+#### Implicit error detection
+Elevator state changes are timestamped. If we do not have a recent state change for an elevator which should be moving, we know that it is erroneous.
+(An obstructed elevator will not change its state, neither will an elevator with motor stop. A crashed or disconnected node while not manage to send the change. Therefore we can rely on this mecanism)
+
+We went with the implicit one, beacuse it is simpler, and therefor more difficult to get wrong. It is also more robust. However, there are downsides to this descicion. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, in stead of immideatly deem that the obstructed elevator is erroneous.

@@ -46,7 +46,7 @@ Elevator state changes are timestamped. If we do not have a recent state change 
 (An obstructed elevator will not change its state, neither will an elevator with motor stop. A crashed or disconnected node will not manage to send the change. Therefore we can rely on this mecanism)
 
 #### Decision
-We went with the implicit one, because it is simpler, and therefore more difficult to get wrong. It is also more robust. However, there are downsides to this descicion. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, instead of immediately deem that the obstructed elevator is erroneous.
+We went with the implicit one, because it is simpler, and therefore more difficult to get wrong. However, there are downsides to this descicion. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, instead of immediately deem that the obstructed elevator is erroneous.
 
 ## Lesson learned - pure functions and immutability
 Thinking in terms of pure functions and immutability has proven itself in this project. Writing pure functions forces in many ways better code because it forces seperation of concern, and avoiding functions that does it all. It also makes code testable. Doing this from the start would have made things go alot faster and smoother.

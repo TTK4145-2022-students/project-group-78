@@ -29,9 +29,10 @@ While nodes are connected together and to the internet, their clocks are synced 
 ### System state agreement
 A system that can be interacted with at multiple processes may suffer from the problem of knowing what happened first. In the case of the elevator project it occurs, for instance, when a order comes in in one process at the same time as it is removed by another process. This may result in a situation where the processes disagree upon the system state. Facing this problem we have come up with two reasonable solutions. One, in which sequence numbers are utilized and another that uses timestamp. Both approaches come with their set of new problems. 
 
-When considering the sequence number solution, the problem of two processes claiming the same sequence number for an event, occurs. This is however not at problem when timestamping every event. That is, the instance of equally timestamped events with nanosecond precision, is highly unlikely. And the resending of central state would in the event of this unlikelyhood resolve this issue at the next broadcast ~15 ms later. 
 
+When considering the sequence number solution, the problem of two processes claiming the same sequence number for an event, occurs. This is however not at problem when timestamping every event. That is, the instance of similarily timestamped events with nanosecond precision, is highly unlikely. And the resending of central state would in the event of this unlikelihood resolve thtis issue at the next broadcast ~15 ms later. 
 As the timestamp solution is clearly easier to implement, we went for that solution. See the paragraph "considerations regarding timestamps" above.
+
 
 The major perk of the timestamp solution is that it reduces the inherent complexity of the elevator problem. That is, it makes sequence numbers in the communication redundant. As this occured to us to be the simplest solution we implemented it. Although we beared in mind the (in most cases)minor drawback of setting requirements to the system, namely synchronized clocks.
 
@@ -39,7 +40,7 @@ The major perk of the timestamp solution is that it reduces the inherent complex
 The spec specifies that when an elevator button is pushed it should always try to send out the event to the other elevators before the actual light is turned on. 
 
 #### The ack way
-This issue can be solved by sending the events out on the network and wait for an acknowlagement from the other elevators.
+This issue can be solved by sending the events out on the network and wait for an acknowlagement from the other elevators before turning on the light. The downside of using acks is that the lights will be dependent on the acks. Mixing these two modules together is complicating the system more than necessary.
 
 #### Persistant storage
 To satisfy the spec, one can resolve the issue without acknowlagements, but with a persistant storage and a small delay. In this case the light is turned on when the button is pushed and the action is stored in a persistant storage. This means that even if the system shuts down, the order is not lost because when booted up again it will load in the events stored in the persistant storage.
@@ -63,4 +64,4 @@ We went with the implicit one, beacuse it is simpler, and therefor more difficul
 ## Lesson learned - pure functions and immutability
 Thinking in terms of pure functions and immutability has proven itself in this project. Writing pure functions forces in many ways better code because it forces seperation of concern, and avoiding functions that does it all. It also makes code testable. Doing this from the start would have made things go alot faster and smoother.
 
-Altough, the code would be better from the start if design was done with a larger emphasis on pure functions, an outright mistake done during development was not thinking in terms of immutability, especally when writing concurrent code. Before ```CentralState``` was made immutable, weird stuff would happen when it was mutated, because at least two threads accesses it at a time.
+Although, the code would be better from the start if design was done with a larger emphasis on pure functions, an outright mistake done during development was not thinking in terms of immutability, especally when writing concurrent code. Before ```CentralState``` was made immutable, weird stuff would happen when it was mutated, because at least two threads accesses it at a time.

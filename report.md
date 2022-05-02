@@ -26,6 +26,10 @@ While nodes are connected together and to the internet, their clocks are synced 
 
 ## Case studies of important descicions
 
+### The button light contract
+
+The spec specifies that when an elevator button is pushed it should always try to send out the event to the other elevators before the actual light is turned on. Since this system does not operate in a way that events specifically is pushed out to the rest of the network whenever they happen, this is an issue with our design concerning this formulation. Since our design always sends out the current state of the elevator with a fixed time-interval we chose to solve this by delaying the action of turnng on the light just enough so we know that the light has been broadcasted. The design also stores this in a persistant storage, ensuring that the call never will be lost anyway. 
+
 ### Error detection and handling
 As hall_request_assigner is used, error handling is as simple as excluding erroneous elevators when assiging. However, the task of detecting that an elevator is erroneous was an interesting design descicion. We found two alternatives: explicit and implicit error detection.
 

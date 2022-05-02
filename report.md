@@ -31,6 +31,8 @@ A system that can be interacted with at multiple processes may suffer from the p
 
 When considering the sequence number solution, the problem of two processes claiming the same sequence number for an event, occurs. This is however not at problem when timestamping every event. That is, the instance of equally timestamped events with nanosecond precision, is highly unlikely. And the resending of central state would in the event of this unlikelyhood resolve this issue at the next broadcast ~15 ms later. 
 
+As the timestamp solution is clearly easier to implement, we went for that solution. See the paragraph "considerations regarding timestamps" above.
+
 The major perk of the timestamp solution is that it reduces the inherent complexity of the elevator problem. That is, it makes sequence numbers in the communication redundant. As this occured to us to be the simplest solution we implemented it. Although we beared in mind the (in most cases)minor drawback of setting requirements to the system, namely synchronized clocks.
 
 ### The button light contract

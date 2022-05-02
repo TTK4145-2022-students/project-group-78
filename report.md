@@ -38,11 +38,11 @@ The spec specifies that when an elevator button is pushed it should always try t
 #### The ack way
 This issue can be solved by sending the events out on the network and wait for an acknowlagement from the other elevators.
 
-#### The delay way (hey hey hey)
-To satisfy the spec, one can resolve the issue without acknowlagements, but with a small delay. If the systems state is broadcasted in a fixed time-interval, as long as we are 100% certain that the button-press is included in the last broadcast, we can turn on the light. This means that by adding a delay the size of the time-interval, the light will not turn on before the button-press has been broadcasted.
+#### Persistant storage
+To satisfy the spec, one can resolve the issue without acknowlagements, but with a persistant storage and a small delay. In this case the light is turned on when the button is pushed and the action is stored in a persistant storage. This means that even if the system shuts down, the order is not lost because when booted up again it will load in the events stored in the persistant storage.
 
 #### Desicion
-Since our system does not handle any acks, the issue is handled by adding a delay before turning the light on. This way, we know for certain that there has been done an attempt to send out the button-press event to the network, and we can safely turn the light on. Also, we store the event in the presistant storage of the elevator where the event occurs, so the button-press itself will never be lost.
+Since our system does not handle any acks, the issue is handled by using persistant storage. To satisfy the spec completly the system is also adding a small delay before turning on the light, so that it is certain that the button event also has been sent out on the network. After the event has been stored in the persistant storage and sent out, the light is turned on, and it cannot be lost.
 
 ### Error detection and handling
 As hall_request_assigner is used, error handling is as simple as excluding erroneous elevators when assiging. However, the task of detecting that an elevator is erroneous was an interesting design descicion. We found two alternatives: explicit and implicit error detection.
@@ -55,4 +55,4 @@ Elevator state changes are timestamped. If we do not have a recent state change 
 (An obstructed elevator will not change its state, neither will an elevator with motor stop. A crashed or disconnected node while not manage to send the change. Therefore we can rely on this mecanism)
 
 #### Descicion
-We went with the implicit one, beacuse it is simpler, and therefor more difficult to get wrong. It is also more robust. However, there are downsides to this descicion. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, instead of immediately deem that the obstructed elevator is erroneous.
+We went with the implicit one, beacuse it is simpler, and therefor more difficult to get wrong. It is also more robust. However, there are downsides to this descicion. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, in stead of immideatly deem that the obstructed elevator is erroneous.

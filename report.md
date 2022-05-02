@@ -26,8 +26,13 @@ While nodes are connected together and to the internet, their clocks are synced 
 
 ## Case studies of important descicions
 
-### The button light contract
+### Ulrik
+A system that can be interacted with at multiple processes may suffer from the problem of knowing what happened first. In the case of the elevator project 
+it occurs, for instance, when a order comes in in one process at merely the same time as it is removed by another process. This may result in a situation where the processes disagree upon the system state. Facing this problem we have come up with two reasonable solutions. One, in which sequence numbers are utilized and another that uses timestamp. Both approaches come with their set of new problems. 
 
+When considering the sequence number solution, the problem of two processes claiming the same sequence number for an event, occurs. This is however not at problem when timestamping every event. That is, the instance of similarily timestamped events with nanosecond precision, is highly unlikely. And the resending of central state would in the event of this unlikelyhood resolve thtis issue at the next broadcast ~15 ms later. 
+
+### The button light contract
 The spec specifies that when an elevator button is pushed it should always try to send out the event to the other elevators before the actual light is turned on. Since this system does not operate in a way that events specifically is pushed out to the rest of the network whenever they happen, this is an issue with our design concerning this formulation. Since our design always sends out the current state of the elevator with a fixed time-interval we chose to solve this by delaying the action of turnng on the light just enough so we know that the light has been broadcasted. The design also stores this in a persistant storage, ensuring that the call never will be lost anyway. 
 
 ### Error detection and handling

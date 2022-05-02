@@ -58,3 +58,8 @@ Elevator state changes are timestamped. If we do not have a recent state change 
 
 #### Descicion
 We went with the implicit one, beacuse it is simpler, and therefor more difficult to get wrong. It is also more robust. However, there are downsides to this descicion. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, in stead of immediately deem that the obstructed elevator is erroneous.
+
+## Lesson learned - pure functions and immutability
+Thinking in terms of pure functions and immutability has proven itself in this project. Writing pure functions forces in many ways better code because it forces seperation of concern, and avoiding functions that does it all. It also makes code testable. Doing this from the start would have made things go alot faster and smoother.
+
+Altough, the code would be better from the start if design was done with a larger emphasis on pure functions, an outright mistake done during development was not thinking in terms of immutability, especally when writing concurrent code. Before ```CentralState``` was made immutable, weird stuff would happen when it was mutated, because at least two threads accesses it at a time.

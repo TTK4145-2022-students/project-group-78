@@ -33,7 +33,16 @@ it occurs, for instance, when a order comes in in one process at merely the same
 When considering the sequence number solution, the problem of two processes claiming the same sequence number for an event, occurs. This is however not at problem when timestamping every event. That is, the instance of similarily timestamped events with nanosecond precision, is highly unlikely. And the resending of central state would in the event of this unlikelyhood resolve thtis issue at the next broadcast ~15 ms later. 
 
 ### The button light contract
-The spec specifies that when an elevator button is pushed it should always try to send out the event to the other elevators before the actual light is turned on. Since this system does not operate in a way that events specifically is pushed out to the rest of the network whenever they happen, this is an issue with our design concerning this formulation. Since our design always sends out the current state of the elevator with a fixed time-interval we chose to solve this by delaying the action of turnng on the light just enough so we know that the light has been broadcasted. The design also stores this in a persistant storage, ensuring that the call never will be lost anyway. 
+The spec specifies that when an elevator button is pushed it should always try to send out the event to the other elevators before the actual light is turned on. 
+
+#### The ack way
+This issue can be solved by sending the events out on the network and wait for an acknowlagement from the other elevators.
+
+#### The delay way (hey hey hey)
+To satisfy the spec, one can resolve the issue without acknowlagements, but with a small delay. If the systems state is broadcasted in a fixed time-interval, as long as we are 100% certain that the button-press is included in the last broadcast, we can turn on the light. This means that by adding a delay the size of the time-interval, the light will not turn on before the button-press has been broadcasted.
+
+#### Desicion
+Since our system does not handle any acks, the issue is handled by adding a delay before turning the light on. This way, we know for certain that there has been done an attempt to send out the button-press event to the network, and we can safely turn the light on. Also, we store the event in the presistant storage of the elevator where the event occurs, so the button-press itself will never be lost.
 
 ### Error detection and handling
 As hall_request_assigner is used, error handling is as simple as excluding erroneous elevators when assiging. However, the task of detecting that an elevator is erroneous was an interesting design descicion. We found two alternatives: explicit and implicit error detection.

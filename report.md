@@ -25,23 +25,15 @@ While nodes are connected together and to the internet, their clocks are synced 
 
 ## Case studies of important descicions
 
-### System state agreement
-A system that can be interacted with at multiple processes may suffer from the problem of not knowing what happened first. In the case of the elevator project it occurs, for instance, when an order comes in in one process at the same time as it is removed by another process. This may result in a situation where the processes disagree upon the system state. Facing this problem we have come up with two reasonable solutions. One, in which sequence numbers are utilized and another that uses timestamp.
+### Ordering of events
+As the ordering of events matters, we need a mecansim to determine which happens first of two events. One way of doing this is assigning a sequence number to events, another is timestamping.
 
-When considering the sequence number solution, the problem of two processes claiming the same sequence number for an event, occurs. This is however not a problem when timestamping every event. That is, the instance of identically timestamped events with nanosecond precision, is highly unlikely. And the resending of central state would in the event of this unlikelihood resolve thtis issue at the next broadcast ~15 ms later. 
-As the timestamp solution is clearly easier to implement, we went for that solution. See the paragraph "considerations regarding timestamps" above.
+Using sequence numbers one have to deal with two events being assigned the same sequence numbers. One also gets a problem if nodes are disconnected from the network. Two events can be timestamped in the same nanosecond, although this is very unlikely. If this were to happen, it would resolve itself during subsequent (re)transmissions. Therefore, the timestamp way was chosen. However, using timestaps also requires syncronized clocks, see "considerations regarding timestamps" above.
 
 ### The button light contract
-The spec specifies that when an elevator button is pushed it should always try to send out the event to the other elevators before the actual light is turned on. 
+The spec demands that when a button light is turned on, an elevator will arrive at that floor. I.e. confirmed orders can not be lost. This can be solved by requiring other nodes to acknowledge an order or saving the order to persistant storage before turning on the light.
 
-#### The ack way
-This issue can be solved by sending the events out on the network and wait for an acknowlagement from the other elevators before turning on the light. The downside of using acks is that the lights will be dependent on the acks. Mixing these two modules together is complicating the system more than necessary.
-
-#### Persistant storage
-To satisfy the spec, one can resolve the issue without acknowlagements, but with a persistant storage and a small delay. In this case the light is turned on when the button is pushed and the action is stored in a persistant storage. This means that even if the system shuts down, the order is not lost because when booted up again it will load in the events stored in the persistant storage.
-
-#### Desicion
-Since our system does not handle any acks, the issue is handled by using persistant storage. To satisfy the spec completly the system is also adding a small delay before turning on the light, so that it is certain that the button event also has been sent out on the network. After the event has been stored in the persistant storage and sent out, the light is turned on, and it cannot be lost.
+As acknowledgement requires more code and more intereconnection between modules, the persistant storage way was chosen. However, the spec is interpereted as to require the order to be broadcast to other elevators before turning on the light. Therefore lights are delayed 20 times the transmission interval to ensure that sufficent attemps to transmit has been done.
 
 ### Error detection and handling
 As hall_request_assigner is used, error handling is as simple as excluding erroneous elevators when assiging. However, the task of detecting that an elevator is erroneous was an interesting design descicion. We found two alternatives: explicit and implicit error detection.

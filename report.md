@@ -36,7 +36,7 @@ The spec demands that when a button light is turned on, an elevator will arrive 
 As acknowledgement requires more code and more intereconnection between modules, the persistant storage way was chosen. However, the spec is interpereted as to require the order to be broadcast to other elevators before turning on the light. Therefore lights are delayed 20 times the transmission interval to ensure that sufficent attemps to transmit has been done.
 
 ### Error detection and handling
-As hall_request_assigner is used, error handling is as simple as excluding erroneous elevators when assiging. However, the task of detecting that an elevator is erroneous was an interesting design descicion. We found two alternatives: explicit and implicit error detection.
+As hall_request_assigner is used, error handling is as simple as excluding erroneous elevators when assiging. However, the task of detecting that an elevator is erroneous was an interesting design decision. We found two alternatives: explicit and implicit error detection.
 
 #### Explicit error detection
 Detecting obstruction is trivial. Detecting motor stop requires a timer. Detecting crash/disconnect reqiures heartbeats and a timer. This is an explicit error detection.
@@ -46,7 +46,7 @@ Elevator state changes are timestamped. If we do not have a recent state change 
 (An obstructed elevator will not change its state, neither will an elevator with motor stop. A crashed or disconnected node will not manage to send the change. Therefore we can rely on this mecanism)
 
 #### Decision
-We went with the implicit one, because it is simpler, and therefore more difficult to get wrong. However, there are downsides to this descicion. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, instead of immediately deem that the obstructed elevator is erroneous.
+We went with the implicit one, because it is simpler, and therefore more difficult to get wrong. However, there are downsides to this decision. If the spec changed to include some different behaviour for different errors, we would maybe have to restructure completly. Also this solution is slower than the explicit one, because we wait for a timeout on the obstruction, instead of immediately deem that the obstructed elevator is erroneous.
 
 ## Lesson learned - pure functions and immutability
 Thinking in terms of pure functions and immutability has proven itself in this project. Writing pure functions forces in many ways better code because it forces seperation of concern, and avoiding functions that does it all. It also makes code testable. Doing this from the start would have made things go alot faster and smoother.
